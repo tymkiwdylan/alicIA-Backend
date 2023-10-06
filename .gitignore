@@ -1,0 +1,29 @@
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+
+# Ignore Python virtual environment
+myvenv/
+
+# Ignore environment-specific settings
+.env
+
+# Ignore local development settings (e.g., Flask development server files)
+instance/
+
+# Ignore log files
+*.log
+
+# Ignore database files
+*.db
+
+# Ignore IDE or code editor specific files
+.vscode/
+.idea/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore package manager files
+pip-lock.txt
