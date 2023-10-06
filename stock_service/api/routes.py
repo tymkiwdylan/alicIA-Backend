@@ -110,6 +110,27 @@ def update_item(id):
     
     return 'Item updated succesfully', 200
 
+@routes.route('/items/<id>', methods=['DELETE'])
+def delte_item(id):
+    '''
+        Remove an item
+        
+        Params: 
+            id
+    '''
+    data = request.get_json()
+    
+    company_name = data['company_name']
+    
+    result = mongo.db[f'{company_name}_Items'].delete_one({'_id': ObjectId(id)})
+    
+    if result.deleted_count != 1:
+        return 'Item not found', 404
+    
+    return 'Item deleted succesfully', 200
+    
+    
+
     
     
 

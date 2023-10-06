@@ -4,6 +4,7 @@ __pycache__/
 
 # Ignore Python virtual environment
 myvenv/
+.venv/
 
 # Ignore environment-specific settings
 .env
