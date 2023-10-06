@@ -1,7 +1,0 @@
-{
-    "python.testing.pytestArgs": [
-        "stock_service"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
-}
