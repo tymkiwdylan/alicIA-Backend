@@ -1,32 +1,12 @@
-class Item:
-    def __init__(self, name, SKU, description, cost, price):
-        self.name = name
-        self.SKU = SKU
-        self.description = description
-        self.cost = cost
-        self.price = price
-        
-class StockLevels:
-    def __init__(self, item_id, current_stock):
-        self.item_id = item_id
-        self.current_stock = current_stock
+from . import db 
 
-class StockMovement:
-    def __init__(self, item_id, movement_type, quantity, timestamp):
-        self.item_id = item_id
-        self.movement_type = movement_type
-        self.quantity = quantity
-        self.timestamp = timestamp
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(80))
+    name = db.Column(db.String(80))
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    company_name = db.Column(db.String(120))
 
-class Supplier:
-    def __init__(self, name, contact_details, items_supplied):
-        self.name = name
-        self.contact_details = contact_details
-        self.items_supplied = items_supplied  # List of item IDs supplied by this supplier
-
-class Batch:
-    def __init__(self, item_id, manufacturing_date, expiry_date):
-        self.item_id = item_id
-        self.manufacturing_date = manufacturing_date
-        self.expiry_date = expiry_date
-
+    def __repr__(self):
+        return f'<User {self.username}>'
