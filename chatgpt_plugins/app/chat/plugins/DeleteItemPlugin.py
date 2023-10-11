@@ -1,0 +1,47 @@
+from typing import Dict
+import requests
+from .plugin import PluginInterface
+
+class DeleteItemPlugin(PluginInterface):
+
+    def get_name(self) -> str:
+        return "delete_item"
+
+    def get_description(self) -> str:
+        return "Delete a specific item by its ID via API."
+
+    def get_parameters(self) -> Dict:
+        """
+        Return the parameters required for this plugin.
+        In this case, there are two parameters: 'company_name' and 'item_id'.
+        """
+        parameters = {
+            "type": "object",
+            "properties": {
+                "company_name": {
+                    "type": "string",
+                    "description": "the name of the company"
+                },
+                "item_id": {
+                    "type": "string",
+                    "description": "the ID of the item to delete"
+                }
+            },
+            "required" : ["company_name", "item_id"]
+        }
+        
+        return parameters
+
+    def execute(self, **kwargs) -> Dict:
+        company_name = kwargs['company_name']
+        item_id = kwargs['item_id']
+
+        # You can adjust the URL to match the actual API endpoint
+        response = requests.delete(f'http://127.0.0.1:5000/items/{item_id}', json={"company_name": company_name})
+
+        if response.status_code == 200:
+            return {"message": "success", "data": None}, 200
+        elif response.status_code == 404:
+            return {"message": "error", "data": "Item not found"}, 404
+        else:
+            return {"message": "error", "data": None}, response.status_code

@@ -20,7 +20,7 @@ def internal_error(error):
     return jsonify(message="Internal Server Error"), 500
 
 @routes.route('/new-stock', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def new_stock():
     """
     Create a new set of collections for stock management related to the current user's company.
@@ -39,7 +39,7 @@ def new_stock():
         
         for collection in collections_to_create:
             mongo.db.create_collection(f'{company_name}_{collection}')
-            mongo.db[f'{company_name}_{collection}'].create_index('item_id')
+            mongo.db[f'{company_name}_{collection}'].create_index('item_id', unique=True)
         
         return jsonify(message='Company stock created successfully'), 201
     
@@ -56,15 +56,16 @@ def get_items():
         JSON response with the list of items or an error message.
     """
     data = request.get_json()
+    print(data)
     company_name = data['company_name']
     
     items = list(mongo.db[f'{company_name}_Items'].find())
-    serialized_items = json_util.dumps(items)
+    items = json_util.dumps(items)
     
-    return jsonify(message='success', data=serialized_items), 200
+    return jsonify(message='success', data=items), 200
 
 @routes.route('/items', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def add_item():
     """
     Add a new item to a company's inventory.
@@ -83,6 +84,24 @@ def add_item():
     mongo.db[f'{company_name}_StockLevels'].insert_one({'item_id': item_id, 'current_stock': quantity})
     
     return jsonify(message='Item added successfully'), 201
+
+@routes.route('/items/search', methods=['POST'])
+def item_search():
+    """
+    Search the database
+
+    Returns:
+        JSON response with the matching items
+    """
+    query = request.get_json()['query']
+    company_name = request.get_json()['company_name']
+    
+    result = mongo.db[f'{company_name}_Items'].find(query)
+    result = json_util.dumps(result)
+    
+    return {'message': 'success', 'data': result}, 200
+    
+    
 
 @routes.route('/items/<id>', methods=['GET'])
 def get_item(id):
@@ -105,7 +124,7 @@ def get_item(id):
     return jsonify(message='success', data=item), 200
 
 @routes.route('/items/<id>', methods=['PUT'])
-@jwt_required()
+@jwt_required(optional=True)
 def update_item(id):
     """
     Update information about a specific item by its ID.
@@ -131,7 +150,7 @@ def update_item(id):
     return jsonify(message='Item updated successfully'), 200
 
 @routes.route('/items/<id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required(optional=True)
 def delete_item(id):
     """
     Delete a specific item by its ID.
@@ -157,7 +176,7 @@ def delete_item(id):
 # Stock Levels routes
 
 @routes.route('/stock-levels/<id>', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_stock_levels(id):
     """
     Get the stock levels for a specific item by its ID.
@@ -177,7 +196,7 @@ def get_stock_levels(id):
     return jsonify(message='success', data=stock), 200
 
 @routes.route('/stock-levels/<id>', methods=['PUT'])
-@jwt_required()
+@jwt_required(optional=True)
 def update_stock(id):
     """
     Update the stock level for a specific item by its ID.
@@ -205,7 +224,7 @@ def update_stock(id):
 # Stock Movements routes
 
 @routes.route('/stock-movements', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_stock_movements():
     """
     Get a list of stock movements for a specific company.
@@ -222,7 +241,7 @@ def get_stock_movements():
 
 @routes.route('/stock-movements', methods=['POST'])
 @jwt_required()
-def log_stock_movement():
+def log_stock_movement(): #TODO: record how to record logs and add to bot
     """
     Log a stock movement for a specific company.
 
@@ -274,7 +293,7 @@ def add_supplier():
 
 @routes.route('/suppliers/<supplier_id>', methods=['GET'])
 @jwt_required()
-def get_supplier(supplier_id):
+def get_supplier(supplier_id): #Skip plugin for now
     """
     Get information about a specific supplier by its ID.
 
