@@ -56,7 +56,6 @@ def get_items():
         JSON response with the list of items or an error message.
     """
     data = request.get_json()
-    print(data)
     company_name = data['company_name']
     
     items = list(mongo.db[f'{company_name}_Items'].find())
@@ -78,14 +77,12 @@ def add_item():
     data = request.get_json()
     company_name = data['company_name']
     item = data['item']
-    quantity = data['quantity']
-    
-    item_id = mongo.db[f'{company_name}_Items'].insert_one(item).inserted_id
-    mongo.db[f'{company_name}_StockLevels'].insert_one({'item_id': item_id, 'current_stock': quantity})
-    
-    return jsonify(message='Item added successfully'), 201
 
-@routes.route('/items/search', methods=['POST'])
+    item_id = mongo.db[f'{company_name}_Items'].insert_one(item).inserted_id
+    
+    return jsonify(message='Item added successfully', data = json_util.dumps(item_id)), 201
+
+@routes.route('/items/search', methods=['GET'])
 def item_search():
     """
     Search the database
@@ -96,10 +93,24 @@ def item_search():
     query = request.get_json()['query']
     company_name = request.get_json()['company_name']
     
-    result = mongo.db[f'{company_name}_Items'].find(query)
+    pipeline = [
+        {
+        '$search': {
+        'index': "item_search",
+        'text': {
+            'query': query,
+            'path': {
+            'wildcard': "*"
+                    }
+                }
+            }
+        }
+    ]
+    
+    result = list(mongo.db[f'{company_name}_Items'].aggregate(pipeline))    
     result = json_util.dumps(result)
     
-    return {'message': 'success', 'data': result}, 200
+    return jsonify(message = 'success', data = result), 200
     
     
 
@@ -114,14 +125,19 @@ def get_item(id):
     Returns:
         JSON response with the item information or an error message.
     """
-    company_name = request.get_json()['company_name']
-    item = mongo.db[f'{company_name}_Items'].find_one({'_id': ObjectId(id)})
-    
-    if not item:
-        return jsonify(message='Item not found'), 404
-    
-    item = json_util.dumps(item)
-    return jsonify(message='success', data=item), 200
+    try:
+        company_name = request.get_json()['company_name']
+        item = mongo.db[f'{company_name}_Items'].find_one({'_id': ObjectId(id)})
+        
+        if not item:
+            return jsonify(message='Item not found'), 404
+        
+        item = json_util.dumps(item)
+        return jsonify(message='success', data=item), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 @routes.route('/items/<id>', methods=['PUT'])
 @jwt_required(optional=True)
@@ -141,13 +157,20 @@ def update_item(id):
     company_name = data['company_name']
     item_data = data['item']
     
-    query = {'_id': ObjectId(id)}
-    result = mongo.db[f'{company_name}_Items'].update_one(query, {'$set': item_data})
-    
-    if result.modified_count != 1:
-        return jsonify(message='Object not found'), 404
-    
-    return jsonify(message='Item updated successfully'), 200
+    try:
+        query = {'_id': ObjectId(id)}
+        result = mongo.db[f'{company_name}_Items'].update_one(query, {'$set': item_data})
+        
+        if result.modified_count != 1:
+            return jsonify(message='Object not found'), 404
+        
+        return jsonify(message='Item updated successfully'), 200
+    except:
+        print(id)
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
+        
 
 @routes.route('/items/<id>', methods=['DELETE'])
 @jwt_required(optional=True)
@@ -166,12 +189,18 @@ def delete_item(id):
     data = request.get_json()
     company_name = data['company_name']
     
-    result = mongo.db[f'{company_name}_Items'].delete_one({'_id': ObjectId(id)})
+    try:
     
-    if result.deleted_count != 1:
-        return jsonify(message='Item not found'), 404
-    
-    return jsonify(message='Item deleted successfully'), 200
+        result = mongo.db[f'{company_name}_Items'].delete_one({'_id': ObjectId(id)})
+        
+        if result.deleted_count != 1:
+            return jsonify(message='Item not found'), 404
+        
+        return jsonify(message='Item deleted successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 # Stock Levels routes
 
@@ -190,10 +219,14 @@ def get_stock_levels(id):
         JSON response with the stock levels or an error message.
     """
     company_name = request.get_json()['company_name']
-    stock = mongo.db[f'{company_name}_StockLevels'].find_one({'item_id': ObjectId(id)})
-    
-    stock = json_util.dumps(stock)
-    return jsonify(message='success', data=stock), 200
+    try:
+        stock = mongo.db[f'{company_name}_StockLevels'].find_one({'item_id': ObjectId(id)})
+        stock = json_util.dumps(stock)
+        return jsonify(message='success', data=stock), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 @routes.route('/stock-levels/<id>', methods=['PUT'])
 @jwt_required(optional=True)
@@ -212,14 +245,18 @@ def update_stock(id):
     data = request.get_json()
     company_name = data['company_name']
     new_level = data['new_level']
-    
-    query = {'item_id': ObjectId(id)}
-    update = {'$set': {'current_stock': new_level}}
-    
-    # TODO: Implement concurrency checks or use transactions if multiple operations can update stock simultaneously
-    mongo.db[f'{company_name}_StockLevels'].update_one(query, update)
-    
-    return jsonify(message='Stock level updated successfully'), 200
+    try:
+        query = {'item_id': ObjectId(id)}
+        update = {'$set': {'current_stock': new_level}}
+        
+        # TODO: Implement concurrency checks or use transactions if multiple operations can update stock simultaneously
+        mongo.db[f'{company_name}_StockLevels'].update_one(query, update)
+        
+        return jsonify(message='Stock level updated successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 # Stock Movements routes
 
@@ -240,7 +277,7 @@ def get_stock_movements():
     return jsonify(message='success', data=serialized_movements), 200
 
 @routes.route('/stock-movements', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def log_stock_movement(): #TODO: record how to record logs and add to bot
     """
     Log a stock movement for a specific company.
@@ -251,6 +288,7 @@ def log_stock_movement(): #TODO: record how to record logs and add to bot
         JSON response with a success message or an error message.
     """
     data = request.get_json()
+    print(data)
     company_name = data['company_name']
     movement = data['movement']
     mongo.db[f'{company_name}_StockMovements'].insert_one(movement)
@@ -292,8 +330,8 @@ def add_supplier():
     return jsonify(message='Supplier added successfully'), 201
 
 @routes.route('/suppliers/<supplier_id>', methods=['GET'])
-@jwt_required()
-def get_supplier(supplier_id): #Skip plugin for now
+@jwt_required(optional=True)
+def get_supplier(supplier_id):
     """
     Get information about a specific supplier by its ID.
 
@@ -304,13 +342,17 @@ def get_supplier(supplier_id): #Skip plugin for now
         JSON response with the supplier information or an error message.
     """
     company_name = request.get_json()['company_name']
-    supplier = mongo.db[f'{company_name}_Suppliers'].find_one({'_id': ObjectId(supplier_id)})
-    
-    if not supplier:
-        return jsonify(message='Supplier not found'), 404
-    
-    serialized_supplier = json_util.dumps(supplier)
-    return jsonify(message='success', data=serialized_supplier), 200
+    try:
+        supplier = mongo.db[f'{company_name}_Suppliers'].find_one({'_id': ObjectId(supplier_id)})
+        
+        if not supplier:
+            return jsonify(message='Supplier not found'), 404
+        
+        serialized_supplier = json_util.dumps(supplier)
+        return jsonify(message='success', data=serialized_supplier), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_suppliers'''), 500
 
 @routes.route('/suppliers/<supplier_id>', methods=['PUT'])
 @jwt_required()
@@ -329,12 +371,16 @@ def update_supplier(supplier_id):
     data = request.get_json()
     company_name = data['company_name']
     supplier_data = data['supplier']
-    result = mongo.db[f'{company_name}_Suppliers'].update_one({'_id': ObjectId(supplier_id)}, {'$set': supplier_data})
-    
-    if result.modified_count != 1:
-        return jsonify(message='Supplier not found'), 404
-    
-    return jsonify(message='Supplier updated successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Suppliers'].update_one({'_id': ObjectId(supplier_id)}, {'$set': supplier_data})
+        
+        if result.modified_count != 1:
+            return jsonify(message='Supplier not found'), 404
+        
+        return jsonify(message='Supplier updated successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_suppliers'''), 500
 
 @routes.route('/suppliers/<supplier_id>', methods=['DELETE'])
 @jwt_required()
@@ -352,12 +398,17 @@ def delete_supplier(supplier_id):
     """
     data = request.get_json()
     company_name = data['company_name']
-    result = mongo.db[f'{company_name}_Suppliers'].delete_one({'_id': ObjectId(supplier_id)})
     
-    if result.deleted_count != 1:
-        return jsonify(message='Supplier not found'), 404
-    
-    return jsonify(message='Supplier deleted successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Suppliers'].delete_one({'_id': ObjectId(supplier_id)})
+        
+        if result.deleted_count != 1:
+            return jsonify(message='Supplier not found'), 404
+        
+        return jsonify(message='Supplier deleted successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_suppliers'''), 500
 
 # Batches routes
 
@@ -376,12 +427,17 @@ def get_batches(item_id):
         JSON response with the list of batches or an error message.
     """
     company_name = request.get_json()['company_name']
-    batches = list(mongo.db[f'{company_name}_Batches'].find({'item_id': ObjectId(item_id)}))
-    serialized_batches = json_util.dumps(batches)
-    return jsonify(message='success', data=serialized_batches), 200
+    try:
+        batches = list(mongo.db[f'{company_name}_Batches'].find({'item_id': ObjectId(item_id)}))
+        serialized_batches = json_util.dumps(batches)
+        return jsonify(message='success', data=serialized_batches), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 @routes.route('/batches', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def add_batch():
     """
     Add a new batch of items to a company's inventory.
@@ -394,8 +450,16 @@ def add_batch():
     data = request.get_json()
     company_name = data['company_name']
     batch = data['batch']
-    mongo.db[f'{company_name}_Batches'].insert_one(batch)
-    return jsonify(message='Batch added successfully'), 201
+    
+    try:
+        batch['item_id'] = ObjectId(batch['item_id'])
+        
+        mongo.db[f'{company_name}_Batches'].insert_one(batch)
+        return jsonify(message='Batch added successfully'), 201
+    except:
+        return jsonify(message= '''item_id must be in ObjectID format.
+                       You can find the id by calling get_items or by searching the item
+                       with item_search'''), 500
 
 @routes.route('/batches/<batch_id>', methods=['PUT'])
 @jwt_required()
@@ -414,12 +478,16 @@ def update_batch(batch_id):
     data = request.get_json()
     company_name = data['company_name']
     batch_data = data['batch']
-    result = mongo.db[f'{company_name}_Batches'].update_one({'_id': ObjectId(batch_id)}, {'$set': batch_data})
-    
-    if result.modified_count != 1:
-        return jsonify(message='Batch not found'), 404
-    
-    return jsonify(message='Batch updated successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Batches'].update_one({'_id': ObjectId(batch_id)}, {'$set': batch_data})
+        
+        if result.modified_count != 1:
+            return jsonify(message='Batch not found'), 404
+        
+        return jsonify(message='Batch updated successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_batches'''), 500
 
 @routes.route('/batches/<batch_id>', methods=['DELETE'])
 @jwt_required()
@@ -437,17 +505,21 @@ def delete_batch(batch_id):
     """
     data = request.get_json()
     company_name = data['company_name']
-    result = mongo.db[f'{company_name}_Batches'].delete_one({'_id': ObjectId(batch_id)})
-    
-    if result.deleted_count != 1:
-        return jsonify(message='Batch not found'), 404
-    
-    return jsonify(message='Batch deleted successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Batches'].delete_one({'_id': ObjectId(batch_id)})
+        
+        if result.deleted_count != 1:
+            return jsonify(message='Batch not found'), 404
+        
+        return jsonify(message='Batch deleted successfully'), 204
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_batches'''), 500
 
 # Locations routes
 
 @routes.route('/locations', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_locations():
     """
     Get a list of locations for a specific company.
@@ -463,7 +535,7 @@ def get_locations():
     return jsonify(message='success', data=serialized_locations), 200
 
 @routes.route('/locations', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def add_location():
     """
     Add a new location to a company's list of locations.
@@ -480,7 +552,7 @@ def add_location():
     return jsonify(message='Location added successfully'), 201
 
 @routes.route('/locations/<location_id>', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_location(location_id):
     """
     Get information about a specific location by its ID.
@@ -492,13 +564,18 @@ def get_location(location_id):
         JSON response with the location information or an error message.
     """
     company_name = request.get_json()['company_name']
-    location = mongo.db[f'{company_name}_Locations'].find_one({'_id': ObjectId(location_id)})
     
-    if not location:
-        return jsonify(message='Location not found'), 404
-    
-    serialized_location = json_util.dumps(location)
-    return jsonify(message='success', data=serialized_location), 200
+    try:
+        location = mongo.db[f'{company_name}_Locations'].find_one({'_id': ObjectId(location_id)})
+        
+        if not location:
+            return jsonify(message='Location not found'), 404
+        
+        serialized_location = json_util.dumps(location)
+        return jsonify(message='success', data=serialized_location), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_locations'''), 500
 
 @routes.route('/locations/<location_id>', methods=['PUT'])
 @jwt_required()
@@ -517,12 +594,16 @@ def update_location(location_id):
     data = request.get_json()
     company_name = data['company_name']
     location_data = data['location']
-    result = mongo.db[f'{company_name}_Locations'].update_one({'_id': ObjectId(location_id)}, {'$set': location_data})
-    
-    if result.modified_count != 1:
-        return jsonify(message='Location not found'), 404
-    
-    return jsonify(message='Location updated successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Locations'].update_one({'_id': ObjectId(location_id)}, {'$set': location_data})
+        
+        if result.modified_count != 1:
+            return jsonify(message='Location not found'), 404
+        
+        return jsonify(message='Location updated successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_locations'''), 500
 
 @routes.route('/locations/<location_id>', methods=['DELETE'])
 @jwt_required()
@@ -540,9 +621,13 @@ def delete_location(location_id):
     """
     data = request.get_json()
     company_name = data['company_name']
-    result = mongo.db[f'{company_name}_Locations'].delete_one({'_id': ObjectId(location_id)})
-    
-    if result.deleted_count != 1:
-        return jsonify(message='Location not found'), 404
-    
-    return jsonify(message='Location deleted successfully'), 200
+    try:
+        result = mongo.db[f'{company_name}_Locations'].delete_one({'_id': ObjectId(location_id)})
+        
+        if result.deleted_count != 1:
+            return jsonify(message='Location not found'), 404
+        
+        return jsonify(message='Location deleted successfully'), 200
+    except:
+        return jsonify(message= '''id must be in ObjectID format.
+                       You can find the id by calling get_locations'''), 500

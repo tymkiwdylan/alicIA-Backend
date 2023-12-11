@@ -4,23 +4,33 @@ import json
 from typing import List, Dict
 import uuid
 from .plugins.plugin import PluginInterface
-from .plugins.websearch import WebSearchPlugin
-from .plugins.webscraper import WebScraperPlugin
-from .plugins.pythoninterpreter import PythonInterpreterPlugin
-from .plugins.GetItemsPlugin import GetItemsPlugin
-from .plugins.SearchItemsPlugin import ItemSearchPlugin
-from .plugins.AddItemPlugin import AddItemPlugin
-from .plugins.UpdateItemPlugin import UpdateItemPlugin
+import importlib
+import os
+import pkgutil
+
+PLUGIN_PATH = os.path.join(os.path.dirname(__file__), 'plugins')
 
 GPT_MODEL = "gpt-3.5-turbo-16k-0613"
 SYSTEM_PROMPT = """
-    You are a helpful AI assistant. You answer the user's queries.
-    When you are not sure of an answer, you take the help of
-    functions provided to you.
-    NEVER make up an answer if you don't know, just respond
-    with "I don't know" when you don't know.
+You are a helpful AI stock management assistant for CompanyX. You answer user queries related
+to stock and the products the company, you take the help of functions provided to you.
+With the help of said functions, you can:
+1. Get all items from the company 
+2. Update the items (oid needed)
+3. Delete items (oid needed)
+4. Add/update/delete locations (oid needed for updating and deleting)
+5. add/update/delete batches of an item given its id (oid needed for updating and deleting)
+6. Add/update/delete suppliers (oid needed for updating and deleting)
+7. Get/update stock levels of an item given its id 
+8. Log and get stock movements
+Remember that you are the best stock manager in the world. This means that 
+you should always log movements when an item is added/sold/updated/etc. 
+You are also very cautios, so you will always ask for confirmation before making
+any kind of changes or deleting something. When in doubt, always ask what approach you should take.
+DO NOT MAKE DATA UP. If you are missing some information, you can either ask for it
+or use functions to find that data. And be extra cautios with IDs.
 """
-openai.api_key = "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"
+openai.api_key = "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"
 
 class Conversation:
     """
@@ -48,14 +58,38 @@ class ChatSession:
         self.session_id = str(uuid.uuid4())
         self.conversation = Conversation()
         self.plugins: Dict[str, PluginInterface] = {}
-        self.register_plugin(WebSearchPlugin())
-        self.register_plugin(WebScraperPlugin())
-        self.register_plugin(PythonInterpreterPlugin())
-        self.register_plugin(GetItemsPlugin())
-        self.register_plugin(AddItemPlugin())
-        self.register_plugin(UpdateItemPlugin())
+       
+        plugin_classes = self.get_all_plugin_classes()
+        plugins = [cls() for cls in plugin_classes]
+        
+        for plugin in plugins:
+            self.register_plugin(plugin)
+
+        # self.register_plugin(WebSearchPlugin())
+        # self.register_plugin(WebScraperPlugin())
+        # self.register_plugin(PythonInterpreterPlugin())
+        # self.register_plugin(GetItemsPlugin())
+        # self.register_plugin(AddItemPlugin())
+        # self.register_plugin(UpdateItemPlugin())
         # self.register_plugin(ItemSearchPlugin())
         self.conversation.add_message("system", SYSTEM_PROMPT)
+        
+    def get_all_plugin_classes(self):
+    # Create a list to hold all plugin classes
+        all_plugin_classes = []
+
+        # Loop over each module in the 'plugins' package
+        for (_, module_name, _) in pkgutil.iter_modules([PLUGIN_PATH]):
+            # Import the module
+            module = importlib.import_module(f'.plugins.{module_name}', __package__)
+
+            # Find classes that are subclass of PluginInterface but not PluginInterface itself
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if isinstance(attr, type) and issubclass(attr, PluginInterface) and attr != PluginInterface:
+                    all_plugin_classes.append(attr)
+
+        return all_plugin_classes
     
     def register_plugin(self, plugin: PluginInterface):
         """

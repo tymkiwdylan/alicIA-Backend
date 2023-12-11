@@ -8,7 +8,9 @@ class AddBatchPlugin(PluginInterface):
         return "add_batch"
 
     def get_description(self) -> str:
-        return "Add a new batch of items to a company's inventory via API."
+        return """Add a new batch of items to a company's inventory via API.
+                    The item_id must be in ObjectID format. If you don't have it you may
+                    look for it with the help of item_search or get_items"""
 
     def get_parameters(self) -> Dict:
         """
@@ -87,4 +89,4 @@ class AddBatchPlugin(PluginInterface):
         if response.status_code == 201:
             return {"message": "success", "data": None}, 201
         else:
-            return {"message": "error", "data": None}, response.status_code
+            return {"message": response.json(), "data": None}, response.status_code

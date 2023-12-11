@@ -8,7 +8,7 @@ class UpdateItemPlugin(PluginInterface):
         return "update_item"
 
     def get_description(self) -> str:
-        return "Update information about a specific item by its ID via API. Make sure you ask for parameters"
+        return "Update information about a specific item by its ID via API. If you don't have the item_id, it appears as $oid when you call get_items"
 
     def get_parameters(self) -> Dict:
         """
@@ -24,6 +24,7 @@ class UpdateItemPlugin(PluginInterface):
                 },
                 "item_id": {
                     "type": "string",
+                    "format": "ObjectID",
                     "description": "the ID of the item to update"
                 },
                 "name": {
@@ -43,8 +44,16 @@ class UpdateItemPlugin(PluginInterface):
                     "description": "new cost of the item"
                 },
                 "price": {
-                    "type": "number",
-                    "description": "new price to the public"
+                    "oneOf": [{
+                        "type": "number",
+                        "description": "new price to the public"
+                        },
+                        {
+                        "type": "string",
+                        "pattern": "^[0-9]+(\\s*[\\+\\-\\*/]\\s*[0-9]+)*$",
+                        "description": "A mathematical expression consisting of numbers and basic operators"
+                        }      
+                    ]
                 }    
             },
             "required": ["company_name", "item_id"]
@@ -53,8 +62,12 @@ class UpdateItemPlugin(PluginInterface):
         return parameters
 
     def execute(self, **kwargs) -> Dict:
+        allowed_chars = set('0123456789.+-*/ ')
         company_name = kwargs.get('company_name', None)
         item_id = kwargs.get('item_id', None)
+        
+        if type(kwargs['price']) == 'string':
+            kwargs['price'] = eval(kwargs['price'])
         
         item_data = {}
         if 'name' in kwargs:
@@ -76,6 +89,7 @@ class UpdateItemPlugin(PluginInterface):
             "company_name": company_name,
             "item": item_data
         }
+        
 
         # You can adjust the URL to match the actual API endpoint
         response = requests.put(f'http://127.0.0.1:5000/items/{item_id}', json=json_data)
@@ -85,5 +99,6 @@ class UpdateItemPlugin(PluginInterface):
         elif response.status_code == 404:
             return {"message": "error", "data": "Object not found"}, 404
         else:
-            return {"message": "error", "data": None}, response.status_code
+            print(response)
+            return {"message": response.json(), "data": None}, response.status_code
 
