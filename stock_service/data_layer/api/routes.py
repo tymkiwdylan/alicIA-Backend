@@ -250,8 +250,13 @@ def update_stock(id):
         update = {'$set': {'current_stock': new_level}}
         
         # TODO: Implement concurrency checks or use transactions if multiple operations can update stock simultaneously
-        mongo.db[f'{company_name}_StockLevels'].update_one(query, update)
-        
+        result = mongo.db[f'{company_name}_StockLevels'].update_one(query, update)
+        if result.matched_count < 1:
+            stock_level = {
+                'item_id': ObjectId(id),
+                'current_stock': new_level
+            }
+            mongo.db[f'{company_name}_StockLevels'].insert_one(stock_level)
         return jsonify(message='Stock level updated successfully'), 200
     except:
         return jsonify(message= '''id must be in ObjectID format.

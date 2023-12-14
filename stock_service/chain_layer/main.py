@@ -103,7 +103,7 @@ def supplier():
 
 @app.route('/stock', methods = ['POST'])
 def stock_management():
-    query = request.get_json()['query']
+    query = request.get_json()['queries']
     
     return stock_update.execute(query)
 

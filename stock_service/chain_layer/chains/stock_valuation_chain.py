@@ -55,7 +55,7 @@ class StockValuation():
         total_stock_value = self.calculate_total_stock_value(items)
 
         # Step 3: Identify the most valuable items in stock
-        most_valuable_items = self.identify_most_valuable_items(items, num_items)
+        most_valuable_items = self.identify_most_valuable_items(items, int(num_items))
 
         return {
             "total_stock_value": total_stock_value,

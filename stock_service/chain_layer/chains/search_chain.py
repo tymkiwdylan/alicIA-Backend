@@ -33,9 +33,9 @@ class StockSearch():
         response = requests.get(f"{API_BASE}/stock-levels/{item['_id']}", json={'company_name': self.company_name})
         
         if response.status_code == 200:
-            return json_util.loads(response.json()['data'])
+            return json_util.loads(response.json()['data'])['current_stock']
         
-        return None
+        return 0
     
     def execute(self, query):
         
@@ -50,7 +50,7 @@ class StockSearch():
         if len(items) > 0:
             for item in items:
                 stock_level = self.fetch_stock_details(item)
-                item['current_stock'] = stock_level['current_stock'] if stock_level != None else 0
+                item['current_stock'] = stock_level
             
             return items
         

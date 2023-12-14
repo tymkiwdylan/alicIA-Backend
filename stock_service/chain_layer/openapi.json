@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://145d1151ce28c6.lhr.life"
+      "url": "https://sensibly-liberal-feline.ngrok-free.app"
     }
   ],
   "paths": {
@@ -82,7 +82,11 @@
                 "type": "object",
                 "properties": {
                   "option": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "update_all",
+                      "update_one"
+                    ]
                   },
                   "item_id": {
                     "type": "string"
@@ -93,7 +97,13 @@
                   "is_percentage": {
                     "type": "boolean"
                   }
-                }
+                },
+                "required": [
+                  "option",
+                  "item_id",
+                  "change_value",
+                  "is_percentage"
+                ]
               }
             }
           }
@@ -218,47 +228,64 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "query": {
-                    "type": "object",
-                    "properties": {
-                      "option": {
-                        "type": "string",
-                        "enum": ["add", "update", "delete"]
-                      },
-                      "item": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "SKU": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "cost": {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          "price": {
-                            "type": "integer",
-                            "minimum": 0
-                          }
+                  "queries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "option": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "update",
+                            "delete"
+                          ]
                         },
-                        "required": ["name", "SKU", "description", "cost", "price"]
+                        "item": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "SKU": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "cost": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "price": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "SKU",
+                            "description",
+                            "cost",
+                            "price"
+                          ]
+                        },
+                        "new_level": {
+                          "type": "integer"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
                       },
-                      "new_level": {
-                        "type": "integer"
-                      },
-                      "id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": ["option"]
+                      "required": [
+                        "option"
+                      ]
+                    }
                   }
                 },
-                "required": ["query"]
+                "required": [
+                  "queries"
+                ]
               }
             }
           }
@@ -286,6 +313,5 @@
         }
       }
     }
-    
-    }
   }
+}
