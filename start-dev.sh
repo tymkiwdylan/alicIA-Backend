@@ -1,21 +1,17 @@
 #!/bin/bash
 
 # Pull code 
-cd /sis/Smart-Integrated-System/
 git pull -f
 
 source myvenv/bin/activate
 
 # Start API 1
-cd data_layer/
-nohup python app.py
+nohup python stock_service/data_layer/app.py
 
-cd chain_layer/
-nohup python main.py
+nohup python stock_service/chain_layer/main.py
 
 # Start API 3
-cd /sis/Smart-Integrated-System/customer_service/
-nohup python3 main.py 
+nohup python3 customer_service/main.py
 
 # Start ngrok
 nohup ngrok start --all
