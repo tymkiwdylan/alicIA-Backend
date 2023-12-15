@@ -17,7 +17,7 @@ instance/
 
 # Ignore database files
 *.db
-db.json
+custmer_service/db.json
 # Ignore IDE or code editor specific files
 .vscode/
 .idea/
