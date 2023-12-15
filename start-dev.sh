@@ -7,10 +7,10 @@ git pull -f
 source myvenv/bin/activate
 
 # Start API 1
-cd /sis/Smart-Integrated-System/stock_service/data_layer
+cd data_layer/
 nohup python app.py
 
-cd /sis/Smart-Integrated-System/stock_service/chain_layer
+cd chain_layer/
 nohup python main.py
 
 # Start API 3
