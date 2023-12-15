@@ -10,6 +10,7 @@ echo "Stopping Flask APIs..."
 # Kill APIs running on their respective ports
 kill_port 7000
 kill_port 9000
+kill_port 5000
 
 echo "Flask APIs stopped."
 
