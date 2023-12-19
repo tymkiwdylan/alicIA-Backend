@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
 from . import db 
 from . import openai_client
-from .models import Agent
-import requests
+from .models import Agent, Conversartion
 
 
 
@@ -99,12 +98,60 @@ def create_assistant():
 
 
 
-@routes.route('/assistant/<id>', methods = ['PUT'])
-def update_assistant(id):
+@routes.route('/assistant/<user_id>', methods = ['PUT'])
+def update_assistant(user_id):
     
     return 'coming soon', 200
 
+@routes.route('/conversation/<user_id>', methods = ['POST'])
+def create_conversation(user_id):
+    data = request.get_json()
+    
+    #retrieve agent_id
+    agent_id = Agent.query.filter_by(user_id=user_id).first()
+    
+    if agent_id == None:
+        return "You haven't set up your agent yet!", 401
+    
+    # create thread
+    
+    new_thread = openai_client.beta.threads.create()
+    
+    new_conversation = Conversartion(id = new_thread.id)
+    
+    db.session.add(new_conversation)
+    db.session.commit()
+    
+    return 'Conversation created successfully', 201
 
 
+@routes.route('/convesations', methods = ['GET'])
+def get_conversations():
+    # Get user_id from params
+    # Retrieve all conversations
+    # Return as json with 200 status
+    pass   
+
+@routes.route('/conversation', methods = ['GET'])
+def get_conversation_messages():
+    # Get thread_id from params
+    # Retrieve all messages from thread
+    # Return as json with 200 status code
+    pass
+
+@routes.route('/conversation', methods = ['DELETE'])
+def delete_conversation():
+    # Get Id from params
+    # delete from api
+    # delete from db
+    # return success with status code 204
+    pass
+    
+
+
+@routes.route('/prompt/<user_id>', methods = ['POST'])
+def process_prompt(user_id):
+    pass
+    
 
     
