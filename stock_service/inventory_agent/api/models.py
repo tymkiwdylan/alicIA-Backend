@@ -9,6 +9,6 @@ class Agent(db.Model):
     conversations = db.relationship('Conversation')
     
     
-class Conversartion(db.model):
+class Conversation(db.Model):
     id = db.Column(db.String(256), primary_key = True)
     agent_id = db.Column(db.Integer, db.ForeignKey('agent.id'))

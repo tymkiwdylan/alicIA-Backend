@@ -1,11 +1,35 @@
+import json
 from flask import Blueprint, request, jsonify
 from . import db 
 from . import openai_client
-from .models import Agent, Conversartion
-
-
+from . import functions
+from .models import Agent, Conversation
 
 routes = Blueprint('routes', __name__)
+
+def register_functions():
+    function_settings = []
+    
+    for _ , tool_class in functions.items():
+        function_settings.append(
+            {
+                'type': 'function',
+                'function': tool_class.settings
+                }
+            )
+    
+    return function_settings
+
+def call_function(function_name, **kwargs):
+    function = functions.get(function_name, None)
+    print(function_name)
+    
+    if function is None:
+        return {'Error': "Function does not exist"}
+    
+    result = function.execute(**kwargs)
+    
+    return result['data']
 
 
 @routes.route('/assistant', methods=['POST'])
@@ -70,7 +94,7 @@ def create_assistant():
                     - Si fallan demasiadas tareas, debes decirle al usuario que contacte al soporte técnico en el 362-413-9565.
                     '''
     
-    tools = {} # Set up function addition logic
+    tools = register_functions()
     
     new_assistant = openai_client.beta.assistants.create(
         instructions = instructions,
@@ -105,19 +129,18 @@ def update_assistant(user_id):
 
 @routes.route('/conversation/<user_id>', methods = ['POST'])
 def create_conversation(user_id):
-    data = request.get_json()
     
     #retrieve agent_id
-    agent_id = Agent.query.filter_by(user_id=user_id).first()
+    agent = Agent.query.filter_by(user_id=user_id).first()
     
-    if agent_id == None:
+    if agent == None:
         return "You haven't set up your agent yet!", 401
     
     # create thread
     
     new_thread = openai_client.beta.threads.create()
     
-    new_conversation = Conversartion(id = new_thread.id)
+    new_conversation = Conversation(id = new_thread.id, agent_id=agent.id)
     
     db.session.add(new_conversation)
     db.session.commit()
@@ -125,19 +148,38 @@ def create_conversation(user_id):
     return 'Conversation created successfully', 201
 
 
-@routes.route('/convesations', methods = ['GET'])
+@routes.route('/conversations', methods = ['GET'])
 def get_conversations():
     # Get user_id from params
     # Retrieve all conversations
     # Return as json with 200 status
-    pass   
+    user_id = request.args.get('user_id', None)
+    
+    if user_id == None:
+        return 'Missing user_id', 400
+    
+    agent = Agent.query.filter_by(user_id=int(user_id)).first()
+    
+    if agent == None:
+        return 'user_id invalid', 404
+    
+    conversations = [conversation.id for conversation in agent.conversations]
+    
+    return jsonify(data = conversations), 200
 
 @routes.route('/conversation', methods = ['GET'])
 def get_conversation_messages():
     # Get thread_id from params
     # Retrieve all messages from thread
     # Return as json with 200 status code
-    pass
+    thread_id = request.args.get('thread_id', None)
+    
+    if thread_id == None:
+        return 'Missing thread_id', 400
+    
+    messages = openai_client.beta.threads.messages.list(thread_id)
+    
+    return jsonify(data = messages.data)
 
 @routes.route('/conversation', methods = ['DELETE'])
 def delete_conversation():
@@ -145,13 +187,96 @@ def delete_conversation():
     # delete from api
     # delete from db
     # return success with status code 204
-    pass
+    thread_id = request.args.get('thread_id', None)
+    
+    if thread_id == None:
+        return 'Missing thread_id', 400
+    
+    response = openai_client.beta.threads.delete(thread_id)
+    
+    if response.deleted != True:
+        return 'Error deleting thread', 400
+    
+    conversation = Conversation.query.get(thread_id)
+    
+    if conversation == None:
+        return 'Thread_id invalid', 404
+    
+    db.session.delete(conversation)
+    db.session.commit()
+    
+    return 'Conversation deleted successfully'
     
 
-
-@routes.route('/prompt/<user_id>', methods = ['POST'])
-def process_prompt(user_id):
-    pass
+@routes.route('/prompt', methods = ['POST'])
+def process_prompt():
+    # create new message
+    # create run
+    # Loop until run is not in_progess or qeued
+    # Branch to function if neccessary
+    # return response
+    
+    data = request.get_json()
+    prompt = data['prompt']
+    thread_id = data['thread_id']
+    
+    agent_id = Conversation.query.get(thread_id).agent_id
+    
+    openai_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user", 
+        content=prompt
+    )
+    
+    run = openai_client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=agent_id
+    )
+    
+    while True:
+        
+        run = openai_client.beta.threads.runs.retrieve(
+            thread_id=thread_id,
+            run_id=run.id
+        )
+        
+        if run.status == 'completed':
+            messages = openai_client.beta.threads.messages.list(thread_id=thread_id)
+            latest_message = messages.data[0]
+            text = latest_message.content[0].text.value
+            return jsonify(data = text), 201
+        
+        if run.status == "requires_action":
+            print('HERE BITCH')
+            tool_call_id = run.required_action.submit_tool_outputs.tool_calls[0]
+            function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
+            function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
+            
+            function_response = call_function(function_name, **function_arguments)
+            print(function_response)
+        
+            run = openai_client.beta.threads.runs.submit_tool_outputs(
+            thread_id=thread_id,
+            run_id=run.id,
+            tool_outputs= [
+                    {
+                    "tool_call_id": tool_call_id.id,
+                    "output": function_response,
+                    }
+                ],
+            )
+            
+        if run.status == "expired":
+            return "Timeout Error", 204
+        if run.status == "cancelled":
+            return "Request cancelled", 204
+        if run.status == "failed":
+            return "Request Failed to Complete", 204
+        
+        
+        
+    
+    
     
 
     
