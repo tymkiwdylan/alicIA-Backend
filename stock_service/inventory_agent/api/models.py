@@ -11,4 +11,4 @@ class Agent(db.Model):
     
 class Conversation(db.Model):
     id = db.Column(db.String(256), primary_key = True)
-    agent_id = db.Column(db.Integer, db.ForeignKey('agent.id'))
+    agent_id = db.Column(db.String(256), db.ForeignKey('agent.id'))

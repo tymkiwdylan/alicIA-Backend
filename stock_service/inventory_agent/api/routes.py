@@ -247,13 +247,11 @@ def process_prompt():
             return jsonify(data = text), 201
         
         if run.status == "requires_action":
-            print('HERE BITCH')
             tool_call_id = run.required_action.submit_tool_outputs.tool_calls[0]
             function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
             function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
             
             function_response = call_function(function_name, **function_arguments)
-            print(function_response)
         
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=thread_id,

@@ -1,0 +1,44 @@
+from . import db 
+
+class Agent(db.Model):
+    id = db.Column(db.String(256), primary_key = True)
+    business_phone_number = db.Column(db.String(256), unique = True, nullable = False)
+    description = db.Column(db.String(512))
+    tone = db.Column(db.String(256))
+    company_name = db.Column(db.String(128))
+    conversations = db.relationship('Conversation')
+    
+class Conversation(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    agent_id = db.Column(db.String(256), db.ForeignKey('agent.id'))
+    thread_id = db.Column(db.String(256), unique = True)
+    phone_number = db.Column(db.String(256))
+    messages = db.relationship('Message')
+    
+    def jsonify(self):
+        
+        messages = [message.jsonify() for message in self.messages]
+        
+        return {
+            'id': self.id,
+            'messages': messages,
+            'agent_id': self.agent_id,
+            'phone_number': self.phone_number,
+            'thread_id': self.thread_id
+        }
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    role = db.Column(db.String(40))
+    conversation_id = db.Column(db.String(256), db.ForeignKey('conversation.id'))
+    content = db.Column(db.Text)
+    
+    def jsonify(self):
+        
+        return {
+            'id' : self.id,
+            'role': self.role,
+            'conversation_id': self.conversation_id,
+            'content' : self.content
+        }
