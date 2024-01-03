@@ -1,7 +1,7 @@
 import requests
 from bson import json_util
 
-API_BASE = "http://127.0.0.1:5000"
+API_BASE = "http://data-layer:5000"
 
 class BatchManagement():
     def __init__(self, company_name):

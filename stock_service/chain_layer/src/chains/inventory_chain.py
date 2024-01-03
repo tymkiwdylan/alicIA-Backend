@@ -1,7 +1,7 @@
 from bson import json_util
 import requests
 
-API_BASE = "http://127.0.0.1:5000"
+API_BASE = "http://data-layer:5000"
 
 class InventoryOverviewChain():
     def __init__(self, company_name):

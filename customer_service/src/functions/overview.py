@@ -13,7 +13,7 @@ class Overview():
     @staticmethod
     def execute(**kwargs):
         # The URL for the API endpoint (you will replace this with the actual URL)
-        url = "http://127.0.0.1:7000/overview"
+        url = "http://data-layer:7000/overview"
 
         try:
             # Making a GET request to the API

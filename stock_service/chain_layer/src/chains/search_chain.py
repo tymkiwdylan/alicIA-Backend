@@ -2,7 +2,7 @@ import json
 import requests
 from bson import json_util
 
-API_BASE = "http://127.0.0.1:5000"
+API_BASE = "http://data-layer:5000"
 class StockSearch():
     def __init__(self, company_name):
         self.company_name = company_name
