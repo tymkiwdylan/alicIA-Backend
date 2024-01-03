@@ -123,6 +123,7 @@ def get_chatgpt_response(prompt, phone_number, business_number):
     
     
     while True:
+        time.sleep(1)
         run = openai_client.beta.threads.runs.retrieve(
         thread_id=conversation.thread_id,
         run_id=run.id
@@ -146,6 +147,8 @@ def get_chatgpt_response(prompt, phone_number, business_number):
             function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
             function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
             function_response = call_function(function_name, **function_arguments)
+            
+            print(function_response)
             
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=conversation.thread_id,

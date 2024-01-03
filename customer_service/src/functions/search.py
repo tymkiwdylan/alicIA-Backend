@@ -2,7 +2,7 @@ import requests
 
 class Search():
     settings = {
-                "name": "search_item",
+                "name": "Search",
                 "description": "Search for an item in the database",
                 "parameters": {
                     "type": "object",
@@ -21,10 +21,11 @@ class Search():
     def execute(**kwargs):
         # The URL for the API endpoint (you will replace this with the actual URL)
         url = "http://127.0.0.1:7000/search"
+        query = kwargs.get('query')
 
         try:
             # Making a GET request to the API
-            response = requests.get(url)
+            response = requests.get(url, params={'query': query})
 
             # Check if the response is successful
             if response.status_code == 200:
