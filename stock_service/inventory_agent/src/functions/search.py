@@ -1,30 +1,37 @@
 import requests
 
-class Overview():
+class Search():
     settings = {
-            "name": "Overview",
-            "description": "Give an overview of the inventory",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
+                "name": "Search",
+                "description": "Search for an item in the database",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The query that is used to search for an item"
+                    }
+                    },
+                    "required": [
+                    "query"
+                    ]
+                }
             }
-        }
     @staticmethod
     def execute(**kwargs):
         # The URL for the API endpoint (you will replace this with the actual URL)
-        url = "http://chain-layer:7000/overview"
+        url = "http://chain-layer:7000/search"
+        query = kwargs.get('query')
 
         try:
             # Making a GET request to the API
-            print(url)
-            response = requests.get(url)
+            response = requests.get(url, params={'query': query})
 
             # Check if the response is successful
             if response.status_code == 200:
                 # You might need to process the response data as needed
                 return {
-                    "message": "Successfully retrieved inventory summary",
+                    "message": "Successfully retrieved item/s",
                     "data": response.json()['data']  # Assuming the response is JSON
                 }
             else:

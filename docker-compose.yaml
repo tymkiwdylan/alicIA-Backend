@@ -16,6 +16,11 @@ services:
     build: ./customer_service
     networks:
       - webnet
+  
+  auth:
+    build: ./auth_service
+    networks:
+      - webnet
 
   chain-layer:
     build: ./stock_service/chain_layer

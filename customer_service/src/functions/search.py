@@ -20,11 +20,12 @@ class Search():
     @staticmethod
     def execute(**kwargs):
         # The URL for the API endpoint (you will replace this with the actual URL)
-        url = "http://data-layer:7000/search"
+        url = "http://chain-layer:7000/search"
         query = kwargs.get('query')
 
         try:
             # Making a GET request to the API
+            print(url)
             response = requests.get(url, params={'query': query})
 
             # Check if the response is successful

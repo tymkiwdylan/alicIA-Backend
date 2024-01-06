@@ -29,7 +29,7 @@ def call_function(function_name, **kwargs):
     
     result = function.execute(**kwargs)
     
-    return result['data']
+    return result
 
 
 @routes.route('/assistant', methods=['POST'])

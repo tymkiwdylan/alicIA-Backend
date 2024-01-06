@@ -31,7 +31,9 @@ def call_function(function_name, **kwargs):
     
     result = function.execute(**kwargs)
     
-    return result['data']
+    logging.debug(f'This is the actual response: {result}')
+    
+    return result
 
 
 def sendMessage(body_mess, phone_number):
@@ -147,8 +149,6 @@ def get_chatgpt_response(prompt, phone_number, business_number):
             function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
             function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
             function_response = call_function(function_name, **function_arguments)
-            
-            print(function_response)
             
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=conversation.thread_id,

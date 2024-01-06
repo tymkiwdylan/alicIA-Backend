@@ -31,12 +31,12 @@ def search_item():
     
     result = stock_search.execute(query)
     
-    return jsonify(data = json_util.dumps(result))
+    return jsonify(data = json_util.dumps(result)), 200
 
 @app.route('/overview', methods = ['GET'])
 def overview():
     inventory_summary = inventory_overview.execute() 
-    return jsonify(message = 'success', data = json_util.dumps(inventory_summary))
+    return jsonify(message = 'success', data = json_util.dumps(inventory_summary)), 200
 
 @app.route('/price', methods = ['PUT'])
 def change_price():
@@ -47,25 +47,27 @@ def change_price():
     change_value = data.get('change_value', None)
     is_percentage = data.get('is_percentage', False)
     
-    return price_change.execute(option, item_id, change_value, is_percentage)
+    result = price_change.execute(option, item_id, change_value, is_percentage)
+    
+    return jsonify(data = result), 200
 
 @app.route('/movement-log', methods = ['GET'])
 def get_movements():
     
-    return jsonify(message = 'success', data = json_util.dumps(stock_tracking.execute()))
+    return jsonify(message = 'success', data = json_util.dumps(stock_tracking.execute())), 200
 
 @app.route('/movement-log', methods = ['POST'])
 def log_movement():
     data = request.get_json()
     movement_data = data
     
-    return stock_tracking.execute(movement_data = movement_data)
+    return jsonify( data= stock_tracking.execute(movement_data = movement_data)), 200
 
 @app.route('/stock-valuation', methods = ['GET'])
 def get_valuation():
     num_items = request.args.get('num_items', 5)
     
-    return jsonify(message = 'success', data = json_util.dumps(valuation.execute(num_items)))
+    return jsonify(message = 'success', data = json_util.dumps(valuation.execute(num_items))), 200
 
 @app.route('/batch', methods = ['POST', 'PUT', 'DELETE'])
 def batch_manangement():
@@ -85,27 +87,27 @@ def batch_manangement():
     if operation == 'DELETE':
         batch_id = data['batch_id']
         
-        return batch_manager.execute(operation, batch_id=batch_id)
+        return jsonify(data = batch_manager.execute(operation, batch_id=batch_id)), 200
     
 
 @app.route('/reorder-alert', methods = ['GET'])
 def reorder_alert():
     reorder_point = request.args.get('reorder_point')
     
-    return json_util.dumps(reorder_alerts.execute(reorder_point=reorder_point))
+    return jsonify(data = json_util.dumps(reorder_alerts.execute(reorder_point=reorder_point))), 200
 
 @app.route('/supplier', methods = ['POST', 'PUT', 'DELETE'])
 def supplier():
     data = request.get_json()
     supplier_data = data['supplier_data']
     operation = request.method
-    return supplier_manager.execute(operation, supplier_data)
+    return jsonify(data = supplier_manager.execute(operation, supplier_data)), 200
 
 @app.route('/stock', methods = ['POST'])
 def stock_management():
     query = request.get_json()['queries']
     
-    return stock_update.execute(query)
+    return jsonify( data= stock_update.execute(query)), 200
 
 
 
