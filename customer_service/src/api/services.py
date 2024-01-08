@@ -22,18 +22,31 @@ def register_functions():
     
     return function_settings
 
-def call_function(function_name, **kwargs):
-    function = functions.get(function_name, None)
-    print(function_name)
+def call_functions(required_functions):
     
-    if function is None:
-        return {'Error': "Function does not exist"}
+    tool_outputs = []
     
-    result = function.execute(**kwargs)
+    for required_function in required_functions:
+        output = {'tool_call_id': required_function.id,
+                  'output': ''}
+        function_name = required_function.function.name
+        args = json.loads(required_function.function.arguments)
+        
+        function = functions.get(function_name, None)
+        
+        if function is None:
+            return {'Error': "Function does not exist"}
+        
+        result = function.execute(**args)
+        logging.debug(f'This is the actual response: {result}')
+        
+        output['output'] = json.dumps(result)
+        
+        tool_outputs.append(output)
     
-    logging.debug(f'This is the actual response: {result}')
+    logging.debug(f'Now this is what we send to the api: {tool_outputs}')
+    return tool_outputs
     
-    return result
 
 
 def sendMessage(body_mess, phone_number):
@@ -145,20 +158,15 @@ def get_chatgpt_response(prompt, phone_number, business_number):
             
             return text
         if run.status == "requires_action":
-            tool_call_id = run.required_action.submit_tool_outputs.tool_calls[0]
-            function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
-            function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
-            function_response = call_function(function_name, **function_arguments)
+            
+            logging.debug(f'Functions to Call {run.required_action.submit_tool_outputs.tool_calls}')
+            
+            tool_outputs = call_functions(run.required_action.submit_tool_outputs.tool_calls)
             
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=conversation.thread_id,
             run_id=run.id,
-            tool_outputs= [
-                    {
-                    "tool_call_id": tool_call_id.id,
-                    "output": function_response,
-                    }
-                ],
+            tool_outputs= tool_outputs,
             )
         if run.status == "expired":
             return "Timeout Error"

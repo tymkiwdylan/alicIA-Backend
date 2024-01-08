@@ -2,12 +2,25 @@ from . import db
 
 class Agent(db.Model):
     id = db.Column(db.String(256), primary_key = True)
+    user_id = db.Column(db.Integer, unique=True)
     business_phone_number = db.Column(db.String(256), unique = True, nullable = False)
     description = db.Column(db.String(512))
     tone = db.Column(db.String(256))
     company_name = db.Column(db.String(128))
     conversations = db.relationship('Conversation')
     
+    def jsonify(self):
+        conversations = [conversation.jsonify() for conversation in self.conversations]
+
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'business_phone_number': self.business_phone_number,
+            'description': self.description,
+            'tone': self.tone,
+            'company_name': self.company_name,
+            'conversations': conversations
+        }
 class Conversation(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     agent_id = db.Column(db.String(256), db.ForeignKey('agent.id'))

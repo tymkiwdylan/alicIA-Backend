@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from . import db 
 from . import openai_client
 from . import functions
@@ -7,8 +7,10 @@ from .models import Agent, Conversation
 
 routes = Blueprint('routes', __name__)
 
-def register_functions():
-    function_settings = []
+def register_tools():
+    function_settings = [{
+        'type': 'code_interpreter'
+    }]
     
     for _ , tool_class in functions.items():
         function_settings.append(
@@ -20,16 +22,28 @@ def register_functions():
     
     return function_settings
 
-def call_function(function_name, **kwargs):
-    function = functions.get(function_name, None)
-    print(function_name)
+def call_functions(required_functions):
     
-    if function is None:
-        return {'Error': "Function does not exist"}
+    tool_outputs = []
     
-    result = function.execute(**kwargs)
-    
-    return result
+    for required_function in required_functions:
+        output = {'tool_call_id': required_function.id,
+                  'output': ''}
+        function_name = required_function.function.name
+        args = json.loads(required_function.function.arguments)
+        
+        function = functions.get(function_name, None)
+        
+        if function is None:
+            return {'Error': "Function does not exist"}
+        
+        result = function.execute(**args)
+        
+        output['output'] = json.dumps(result)
+        
+        tool_outputs.append(output)
+        
+    return tool_outputs
 
 
 @routes.route('/assistant', methods=['POST'])
@@ -45,6 +59,8 @@ def create_assistant():
     
     tone = data['tone']
     
+    custom_instructions = data['custom_instructions']
+    
     # Update instructions so that they have tools rather than API endpoints
     instructions = f'''
                     **Asistente de Inventario AI con Integración de API de {company_name}**
@@ -53,13 +69,19 @@ def create_assistant():
                     El Asistente de Inventario AI es una herramienta avanzada diseñada para la gestión del inventario de {company_name}. Utiliza la API de Inventario de {company_name}
                     para la recuperación y gestión de datos en tiempo real. Este AI se destaca en proporcionar resúmenes actualizados del inventario, buscar artículos específicos, ajustar precios de los artículos, registrar movimientos de stock, evaluar la valoración del stock y actualizar el inventario. 
 
-                    **Integración de Puntos de Acceso API:**
-                    1. **/overview (GET):** Para obtener un resumen del estado actual del inventario.
-                    2. **/search (GET):** Para buscar detalladamente artículos en el inventario usando consultas específicas.
-                    3. **/price (PUT):** Para actualizar el precio de los artículos, con opciones para ajustar por montos fijos o porcentajes.
-                    4. **/movement-log (GET, POST):** Para recuperar y registrar el movimiento de stock, incluyendo cantidad, tipo de movimiento y descripciones.
-                    5. **/stock-valuation (GET):** Para obtener una evaluación del stock basada en parámetros especificados.
-                    6. /stock (POST): Para actualizar, eliminar o añadir artículos al stock.
+                    **Tono del Agente:**
+                    El agente debe sonar siempre de la siguiente manera:
+                    {tone}
+                    
+                    **Herramientas:**
+                    1. **Overview:** Para obtener un resumen del estado actual del inventario.
+                    2. **Search:** Para buscar detalladamente artículos en el inventario usando consultas específicas.
+                    3. **PriceChange:** Para actualizar el precio de los artículos, con opciones para ajustar por montos fijos o porcentajes.
+                    4. **GetMovementLog:** Para recuperar y registrar el movimiento de stock, incluyendo cantidad, tipo de movimiento y descripciones.
+                    5. **StockValuation:** Para obtener una evaluación del stock basada en parámetros especificados.
+                    6. **StockManagement:** Para actualizar, eliminar o añadir artículos al stock.
+                    7. **MovementLogger:** Para logear movimientos del inventario.
+                   
 
                     **Interacción del Usuario y Funcionalidad:**
                     - Proporcionar una interfaz amigable para interactuar con los puntos de acceso de la API.
@@ -92,9 +114,14 @@ def create_assistant():
                     - Recuerda que eres un especialista, debes proporcionar ideas incluso cuando no se te pida.
                     - Tienes acceso a la herramienta de interpretación de código, asegúrate de usarla para generar gráficos que proporcionen mejores ideas para el usuario.
                     - Si fallan demasiadas tareas, debes decirle al usuario que contacte al soporte técnico en el 362-413-9565.
+                    
+                    **Intrucciones Extras:**
+                    Estas instrucciones deben ser tenidas en cuenta siempre, Son igual de importantes que las instrucciones tecnicas pero en caso de ser contradictorias pueden ser ignoradas.
+                    {custom_instructions}
+                    
                     '''
     
-    tools = register_functions()
+    tools = register_tools()
     
     new_assistant = openai_client.beta.assistants.create(
         instructions = instructions,
@@ -206,7 +233,23 @@ def delete_conversation():
     db.session.commit()
     
     return 'Conversation deleted successfully'
+
+
+@routes.route('/files/<filename>', methods=['GET'])
+def download_file(filename):
+    directory = '/files'
+    return send_from_directory(directory, filename)
     
+def upload_files(files):
+    file_ids = []
+    for file in files:
+        uploaded_file = openai_client.files.create(
+            file=file,
+            purpose="assistant"
+        )
+        file_ids.append(uploaded_file.id)
+        
+    return file_ids
 
 @routes.route('/prompt', methods = ['POST'])
 def process_prompt():
@@ -219,13 +262,17 @@ def process_prompt():
     data = request.get_json()
     prompt = data['prompt']
     thread_id = data['thread_id']
+    files = request.files.getlist('files')
+    
+    file_ids = upload_files(files)
     
     agent_id = Conversation.query.get(thread_id).agent_id
     
     openai_client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user", 
-        content=prompt
+        content=prompt,
+        file_ids=file_ids
     )
     
     run = openai_client.beta.threads.runs.create(
@@ -242,26 +289,17 @@ def process_prompt():
         
         if run.status == 'completed':
             messages = openai_client.beta.threads.messages.list(thread_id=thread_id)
-            latest_message = messages.data[0]
-            text = latest_message.content[0].text.value
-            return jsonify(data = text), 201
+            content = process_completion(messages[0])
+            return jsonify(data = content), 201
         
         if run.status == "requires_action":
-            tool_call_id = run.required_action.submit_tool_outputs.tool_calls[0]
-            function_name = run.required_action.submit_tool_outputs.tool_calls[0].function.name
-            function_arguments = json.loads(run.required_action.submit_tool_outputs.tool_calls[0].function.arguments)
             
-            function_response = call_function(function_name, **function_arguments)
+            tool_outputs = call_functions(run.required_action.submit_tool_outputs.tool_calls)
         
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=thread_id,
             run_id=run.id,
-            tool_outputs= [
-                    {
-                    "tool_call_id": tool_call_id.id,
-                    "output": function_response,
-                    }
-                ],
+            tool_outputs= tool_outputs,
             )
             
         if run.status == "expired":
@@ -273,8 +311,39 @@ def process_prompt():
         
         
         
-    
-    
-    
+def process_completion(response):
+    message_content = response.content[0].text
+    annotations = message_content.annotations
+    citations = []
 
+    # Iterate over the annotations and add footnotes
+    for index, annotation in enumerate(annotations):
+        # Replace the text with a footnote
+        message_content.value = message_content.value.replace(annotation.text, f' [{index}]')
+
+        # Gather citations based on annotation attributes
+        if (file_citation := getattr(annotation, 'file_citation', None)):
+            cited_file = openai_client.files.retrieve(file_citation.file_id)
+            citations.append(f'[{index}] {file_citation.quote} from {cited_file.filename}')
+        elif (file_path := getattr(annotation, 'file_path', None)):
+            cited_file = openai_client.files.retrieve(file_path.file_id)
+            
+            file_data = openai_client.files.content(cited_file.id)
+            file_name = cited_file.filename
+            
+            save_path = '/files/' + file_name
+            
+            with open(save_path, 'wb') as file:
+                file.write(file_data)
+                
+            download_url = 'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files/' + file_name
+                
+            citations.append(f'[{index}] Click [<here>]({download_url}) to download {cited_file.filename}')
+            # Note: File download functionality not implemented above for brevity
+
+    # Add footnotes to the end of the message before displaying to user
+    message_content.value += '\n' + '\n'.join(citations)
+    
+    return message_content
+    
     

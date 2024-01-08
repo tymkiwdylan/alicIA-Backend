@@ -35,6 +35,6 @@ class Overview():
                 }
         except Exception as e:
             return {
-                "message": str(e),
+                "message": "Failed to retrieve data",
                 "data": None
             }
