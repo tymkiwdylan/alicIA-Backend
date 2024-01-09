@@ -315,3 +315,8 @@
       }
     }
   }
+
+
+
+
+  [RequiredActionFunctionToolCall(id='call_hVBnKbIQKxiu5fxDb3kXkVvb', function=Function(arguments='{"query": "cortar madera"}', name='Search'), type='function'), RequiredActionFunctionToolCall(id='call_Tthsr4uFqt8MzXeZfMSCogat', function=Function(arguments='{}', name='Overview'), type='function')]

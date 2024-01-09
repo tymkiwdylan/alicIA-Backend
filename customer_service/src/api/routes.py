@@ -18,7 +18,7 @@ def create_assistant():
     
     company_name = data['company_name']
     
-    model = 'gpt-3.5-turbo-1106'
+    model = 'gpt-4-1106-preview'
     name = f"{company_name}_customer_assistant"
     description = f'''This is an customer Assistant for {company_name}'''
     

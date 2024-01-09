@@ -61,7 +61,6 @@ def create_assistant():
     
     custom_instructions = data['custom_instructions']
     
-    # Update instructions so that they have tools rather than API endpoints
     instructions = f'''
                     **Asistente de Inventario AI con Integración de API de {company_name}**
 
@@ -339,7 +338,6 @@ def process_completion(response):
             download_url = 'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files/' + file_name
                 
             citations.append(f'[{index}] Click [<here>]({download_url}) to download {cited_file.filename}')
-            # Note: File download functionality not implemented above for brevity
 
     # Add footnotes to the end of the message before displaying to user
     message_content.value += '\n' + '\n'.join(citations)
