@@ -1,9 +1,11 @@
 import json
+import os
 from flask import Blueprint, request, jsonify, send_from_directory
 from . import db 
 from . import openai_client
 from . import functions
-from .models import Agent, Conversation
+from .models import Agent, Conversation, Message
+import os
 
 routes = Blueprint('routes', __name__)
 
@@ -30,7 +32,11 @@ def call_functions(required_functions):
         output = {'tool_call_id': required_function.id,
                   'output': ''}
         function_name = required_function.function.name
-        args = json.loads(required_function.function.arguments)
+        
+        try:
+            args = json.loads(required_function.function.arguments)
+        except:
+            args = {}
         
         function = functions.get(function_name, None)
         
@@ -53,7 +59,7 @@ def create_assistant():
     company_name = data['company_name']
     user_id = data['user_id']
     
-    model = 'gpt-4-1106-preview'
+    model = 'gpt-4'
     name = f"{company_name}_inventory_assistant"
     description = f'''This is an inventory Assistant for {company_name}'''
     
@@ -68,6 +74,8 @@ def create_assistant():
                     El Asistente de Inventario AI es una herramienta avanzada diseñada para la gestión del inventario de {company_name}. Utiliza la API de Inventario de {company_name}
                     para la recuperación y gestión de datos en tiempo real. Este AI se destaca en proporcionar resúmenes actualizados del inventario, buscar artículos específicos, ajustar precios de los artículos, registrar movimientos de stock, evaluar la valoración del stock y actualizar el inventario. 
 
+                    **En caso de crear archivos con el interpretador de codigo, jamas incluyas el link para descargalo.**
+                    
                     **Tono del Agente:**
                     El agente debe sonar siempre de la siguiente manera:
                     {tone}
@@ -144,7 +152,7 @@ def create_assistant():
     db.session.add(new_agent)
     db.session.commit()
     
-    return 'success', 201
+    return jsonify(message = 'Success', data = new_agent.jsonify())
 
 
 
@@ -155,7 +163,6 @@ def update_assistant(user_id):
 
 @routes.route('/conversation/<user_id>', methods = ['POST'])
 def create_conversation(user_id):
-    
     #retrieve agent_id
     agent = Agent.query.filter_by(user_id=user_id).first()
     
@@ -171,7 +178,7 @@ def create_conversation(user_id):
     db.session.add(new_conversation)
     db.session.commit()
     
-    return 'Conversation created successfully', 201
+    return jsonify(message = 'Conversation created successfully', data = new_conversation.id), 201
 
 
 @routes.route('/conversations', methods = ['GET'])
@@ -203,9 +210,13 @@ def get_conversation_messages():
     if thread_id == None:
         return 'Missing thread_id', 400
     
-    messages = openai_client.beta.threads.messages.list(thread_id)
+    conversation = Conversation.query.get(thread_id)
     
-    return jsonify(data = messages.data)
+    if conversation is None:
+        return jsonify(message = 'Conversation does not exist', data = None), 404
+    messages = [message.jsonify() for message in conversation.messages]
+    
+    return jsonify(data = messages), 200
 
 @routes.route('/conversation', methods = ['DELETE'])
 def delete_conversation():
@@ -234,9 +245,11 @@ def delete_conversation():
     return 'Conversation deleted successfully'
 
 
-@routes.route('/files/<filename>', methods=['GET'])
-def download_file(filename):
-    directory = '/files'
+@routes.route('/files', methods=['GET'])
+def download_file():
+    print('HERE')
+    filename = request.args.get('filename')
+    directory = 'files/'
     return send_from_directory(directory, filename)
     
 def upload_files(files):
@@ -263,16 +276,24 @@ def process_prompt():
     thread_id = data['thread_id']
     files = request.files.getlist('files')
     
-    file_ids = upload_files(files)
+    file_ids = upload_files(files) 
+    conversation = Conversation.query.get(thread_id)
+    agent_id = conversation.agent_id
     
-    agent_id = Conversation.query.get(thread_id).agent_id
-    
-    openai_client.beta.threads.messages.create(
+    message = openai_client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user", 
         content=prompt,
         file_ids=file_ids
     )
+    
+    new_message = Message(conversation_id=conversation.id,
+                          role = 'user',
+                          content = message.content[0].text.value)
+    
+    db.session.add(new_message)
+    db.session.commit()
+    
     
     run = openai_client.beta.threads.runs.create(
         thread_id=thread_id,
@@ -288,8 +309,19 @@ def process_prompt():
         
         if run.status == 'completed':
             messages = openai_client.beta.threads.messages.list(thread_id=thread_id)
-            content = process_completion(messages[0])
-            return jsonify(data = content), 201
+            print(f'Here is the content: {messages.data[0]} and {messages.data[-1]}')
+            content = process_completion(messages.data[0])
+            
+            
+            
+            new_message = Message(conversation_id=conversation.id,
+                          role = 'assistant',
+                          content = content)
+    
+            db.session.add(new_message)
+            db.session.commit()
+            
+            return jsonify(data = new_message.jsonify()), 201
         
         if run.status == "requires_action":
             
@@ -306,42 +338,59 @@ def process_prompt():
         if run.status == "cancelled":
             return "Request cancelled", 204
         if run.status == "failed":
+            print(run)
             return "Request Failed to Complete", 204
         
         
         
+
+
 def process_completion(response):
-    message_content = response.content[0].text
-    annotations = message_content.annotations
+    message_content = ''
+    annotations = []
     citations = []
 
-    # Iterate over the annotations and add footnotes
-    for index, annotation in enumerate(annotations):
-        # Replace the text with a footnote
-        message_content.value = message_content.value.replace(annotation.text, f' [{index}]')
+    # Iterate over each content item in the response
+    for content_item in response.content:
+        if content_item.type == 'text':
+            # Process text content
+            message_content += content_item.text.value
+            annotations.extend(content_item.text.annotations)
+        elif content_item.type == 'image_file':
+            # Process image content
+            image_file = openai_client.files.retrieve(content_item.image_file.file_id)
+            file_name = os.path.basename(image_file.filename)
+            
+            save_path = 'api/files/' + file_name + '.png'
+            file_data = openai_client.files.content(image_file.id).content
 
-        # Gather citations based on annotation attributes
+            with open(save_path, 'wb') as file:
+                file.write(file_data)
+
+            download_url = f'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files?filename={file_name}.png'
+            message_content += f'\n ![Imagen]({download_url})\n '
+
+    # Process annotations and add footnotes
+    for index, annotation in enumerate(annotations):
+        idx = index + 1
+
         if (file_citation := getattr(annotation, 'file_citation', None)):
             cited_file = openai_client.files.retrieve(file_citation.file_id)
-            citations.append(f'[{index}] {file_citation.quote} from {cited_file.filename}')
+            citations.append(f'[{idx}] {file_citation.quote} from {cited_file.filename}')
         elif (file_path := getattr(annotation, 'file_path', None)):
             cited_file = openai_client.files.retrieve(file_path.file_id)
+
+            file_data = openai_client.files.content(cited_file.id).content
+            file_name = os.path.basename(cited_file.filename)
             
-            file_data = openai_client.files.content(cited_file.id)
-            file_name = cited_file.filename
-            
-            save_path = '/files/' + file_name
+            save_path = 'api/files/' + file_name
             
             with open(save_path, 'wb') as file:
                 file.write(file_data)
                 
-            download_url = 'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files/' + file_name
-                
-            citations.append(f'[{index}] Click [<here>]({download_url}) to download {cited_file.filename}')
+            download_url = f'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files?filename={file_name}'
+            
+            message_content = message_content.replace(annotation.text, f'{download_url}')
 
-    # Add footnotes to the end of the message before displaying to user
-    message_content.value += '\n' + '\n'.join(citations)
     
     return message_content
-    
-    

@@ -1,11 +1,11 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
 import os
 from openai import OpenAI
 import importlib
 import pkgutil
 from pathlib import Path 
+from flask_cors import CORS
 
 def load_tools_from_directory(directory):
     tools = {}
@@ -36,12 +36,12 @@ def load_tools_from_directory(directory):
     return tools
 
 db = SQLAlchemy()
-jwt = JWTManager()
 openai_client = OpenAI(api_key="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") #Add api key
 functions = load_tools_from_directory('functions')
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
     app.config['SECRET_KEY'] = 'secret'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agents.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -50,7 +50,6 @@ def create_app():
     from .routes import routes
     app.register_blueprint(routes)
     
-    jwt.init_app(app)
     db.init_app(app)
     create_db(app)
     

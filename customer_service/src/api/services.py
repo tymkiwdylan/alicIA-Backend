@@ -128,6 +128,7 @@ def get_chatgpt_response(prompt, phone_number, business_number):
                           role = 'user',
                           content = message.content[0].text.value)
     
+    
     db.session.add(new_message)
     db.session.commit()
     
