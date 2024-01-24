@@ -6,18 +6,22 @@ class Overview():
             "description": "Give an overview of the inventory",
             "parameters": {
                 "type": "object",
-                "properties": {},
-                "required": []
+                "properties": {
+                    "company_name": {
+                        "type": "string",
+                        "description": "name of the company the assistant works for"
+                    }
+                    },
+                "required": ["company_name"]
             }
         }
     @staticmethod
     def execute(**kwargs):
-        # The URL for the API endpoint (you will replace this with the actual URL)
+        # The URL for the API endpoint
         url = "http://chain-layer:7000/overview"
 
         try:
             # Making a GET request to the API
-            print(url)
             response = requests.get(url)
 
             # Check if the response is successful
@@ -35,6 +39,6 @@ class Overview():
                 }
         except Exception as e:
             return {
-                "message": "Failed to retrieve data",
+                "message": str(e),
                 "data": None
             }

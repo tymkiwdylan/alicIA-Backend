@@ -6,18 +6,19 @@ class Overview():
             "description": "Give an overview of the inventory",
             "parameters": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    },
                 "required": []
             }
         }
     @staticmethod
-    def execute(**kwargs):
+    def execute(company_name, **kwargs):
         # The URL for the API endpoint
         url = "http://chain-layer:7000/overview"
 
         try:
             # Making a GET request to the API
-            response = requests.get(url)
+            response = requests.get(url, params={'company_name': company_name})
 
             # Check if the response is successful
             if response.status_code == 200:

@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class PriceChange():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def fetch_items(self):
         
@@ -53,7 +53,9 @@ class PriceChange():
         
         return None
 
-    def execute(self, option, item_id=None, change_value=None, is_percentage=False):
+    def execute(self, company_name, option, item_id=None, change_value=None, is_percentage=False):
+        self.company_name = company_name
+        
         if option == "update_all" and change_value is not None:
             items = self.fetch_items()
             updated_items = []

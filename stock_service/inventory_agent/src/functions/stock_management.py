@@ -48,20 +48,20 @@ class StockManagement():
                         },
                         "required": ["option"]
                     }
-                }
+                },
             },
-            "required": ["queries"]
+            "required": ["queries", ]
         }
     }
 
     @staticmethod
-    def execute(queries):
+    def execute(company_name, queries):
         # The URL for the API endpoint
         url = "http://chain-layer:7000/stock"
 
         try:
             # Making a POST request to the API with the queries
-            response = requests.post(url, json={"queries": queries})
+            response = requests.post(url, json={"queries": queries, 'company_name': company_name})
 
             # Check if the response is successful
             if response.status_code == 200:

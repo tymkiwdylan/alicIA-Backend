@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from . import db
 from .models import User
+import jwt
 from .services import generate_token, verify_token
 
 auth = Blueprint('auth', __name__)
@@ -35,7 +36,7 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'message': 'User registered successfully'}), 201
+    return jsonify({'message': 'User registered successfully', 'data': new_user.jsonify()}), 201
 
 @auth.route('/login', methods=['POST'])
 def login():
@@ -57,7 +58,7 @@ def login():
     # Generate token
     token = generate_token(user.id)
 
-    return jsonify({'token': token.decode('UTF-8')}), 200
+    return jsonify({'token': token}), 200
 
 @auth.route('/validate', methods=['POST'])
 def validate():
@@ -71,7 +72,8 @@ def validate():
         token = token[7:]
 
     # Verify the token
-    if verify_token(token):
-        return jsonify({'message': 'Token is valid'}), 200
+    payload = verify_token(token)
+    if payload != False:
+        return jsonify({'message': 'Token is valid', 'data': payload }), 200
     else:
         return jsonify({'message': 'Token is invalid or expired'}), 401

@@ -10,20 +10,20 @@ class StockValuation():
                 "num_items": {
                     "type": "integer",
                     "default": 5
-                }
+                },
             },
             "required": []
         }
     }
 
     @staticmethod
-    def execute(num_items=5):
+    def execute(company_name, num_items=5):
         # The URL for the API endpoint
         url = "http://chain-layer:7000/stock-valuation"
 
         try:
             # Making a GET request to the API with num_items as a query parameter
-            params = {'num_items': num_items}
+            params = {'num_items': num_items, 'company_name': company_name}
             response = requests.get(url, params=params)
 
             # Check if the response is successful

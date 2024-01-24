@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class BatchManagement():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def add_new_batch(self, batch_data):
         # Send a request to add a new batch (POST /batches)
@@ -43,7 +43,8 @@ class BatchManagement():
         
         return None
 
-    def execute(self, operation, batch_id=None, batch_data=None, updated_batch_data=None):
+    def execute(self, company_name, operation, batch_id=None, batch_data=None, updated_batch_data=None):
+        self.company_name = company_name
         if operation == "POST" and batch_data:
             return self.add_new_batch(batch_data)
         elif operation == "PUT" and batch_id and updated_batch_data:

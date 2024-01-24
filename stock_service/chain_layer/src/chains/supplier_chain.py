@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class SupplierManagement():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def add_supplier(self, supplier_data):
         supplier_data['company_name'] = self.company_name
@@ -34,7 +34,10 @@ class SupplierManagement():
         
         return {"error": "Failed to remove supplier"}
 
-    def execute(self, action, data=None):
+    def execute(self, company_name, action, data=None):
+        
+        self.company_name = company_name
+        
         if action == "POST" and data:
             result = self.add_supplier(data)
         elif action == "PUT" and data:

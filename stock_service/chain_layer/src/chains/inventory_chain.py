@@ -4,8 +4,8 @@ import requests
 API_BASE = "http://data-layer:5000"
 
 class InventoryOverviewChain():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def fetch_all_items(self):
         items_response = requests.get(f"{API_BASE}/items", json = {'company_name': self.company_name})
@@ -31,7 +31,8 @@ class InventoryOverviewChain():
             item['status'] = self.analyze_stock_levels(stock_level['current_stock'] if stock_level != None else 0)
         return items
 
-    def execute(self):
+    def execute(self, company_name):
+        self.company_name = company_name
         items = self.fetch_all_items()
         items = self.categorize_items(items)
         return items

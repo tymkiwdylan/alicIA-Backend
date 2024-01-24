@@ -22,6 +22,13 @@ class Conversation(db.Model):
     agent_id = db.Column(db.String(256), db.ForeignKey('agent.id'))
     messages = db.relationship('Message')
     
+    def jsonify(self):
+        messages = [message.jsonify() for message in self.messages]
+        return {
+            'id' : self.id,
+            'agent_id': self.agent_id,
+            'messages': messages
+        }
     
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key = True)

@@ -6,15 +6,19 @@ class GetMovementLog():
         "description": "Retrieve stock movement logs",
         "parameters": {
             "type": "object",
-            "properties": {},
+            "properties": {
+                
+                },
             "required": []
         }
     }
 
     @staticmethod
-    def execute(**kwargs):
+    def execute(company_name, **kwargs):
         # The URL for the API endpoint
         url = "http://chain-layer:7000/movement-log"
+        
+        kwargs['company_name'] = company_name
 
         try:
             # Making a GET request to the API

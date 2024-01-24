@@ -6,3 +6,10 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(100))
     company_name = db.Column(db.String(256))
+    
+    def jsonify(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'company_name': self.company_name
+        }

@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class StockUpdateChain():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
         
     def add_item(self, query):
         response = requests.post(f"{API_BASE}/items", json= {'company_name': self.company_name,
@@ -39,7 +39,9 @@ class StockUpdateChain():
         
         return 'Something went wrong. Please try again later or contact support.'
     
-    def execute(self, queries):
+    def execute(self, company_name, queries):
+        
+        self.company_name = company_name
         
         results = []
         
@@ -62,7 +64,9 @@ class StockUpdateChain():
                     result = self.delete_item(id)
             else:
                 result = "Invalid option. Options available are ['add', 'update', 'delete']"
+            
+            results.append(result)
         
         
-        return result
+        return results
             

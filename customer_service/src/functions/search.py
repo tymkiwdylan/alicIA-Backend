@@ -10,6 +10,10 @@ class Search():
                     "query": {
                         "type": "string",
                         "description": "The query that is used to search for an item"
+                    },
+                    "company_name": {
+                        "type": "string",
+                        "description": "name of the company the assistant works for"
                     }
                     },
                     "required": [
@@ -25,7 +29,6 @@ class Search():
 
         try:
             # Making a GET request to the API
-            print(url)
             response = requests.get(url, params={'query': query})
 
             # Check if the response is successful

@@ -24,7 +24,7 @@ def register_tools():
     
     return function_settings
 
-def call_functions(required_functions):
+def call_functions(company_name, required_functions):
     
     tool_outputs = []
     
@@ -43,7 +43,7 @@ def call_functions(required_functions):
         if function is None:
             return {'Error': "Function does not exist"}
         
-        result = function.execute(**args)
+        result = function.execute(company_name, **args)
         
         output['output'] = json.dumps(result)
         
@@ -59,7 +59,7 @@ def create_assistant():
     company_name = data['company_name']
     user_id = data['user_id']
     
-    model = 'gpt-4'
+    model = 'gpt-4-1106-preview'
     name = f"{company_name}_inventory_assistant"
     description = f'''This is an inventory Assistant for {company_name}'''
     
@@ -80,15 +80,22 @@ def create_assistant():
                     El agente debe sonar siempre de la siguiente manera:
                     {tone}
                     
+
                     **Herramientas:**
-                    1. **Overview:** Para obtener un resumen del estado actual del inventario.
-                    2. **Search:** Para buscar detalladamente artículos en el inventario usando consultas específicas.
-                    3. **PriceChange:** Para actualizar el precio de los artículos, con opciones para ajustar por montos fijos o porcentajes.
-                    4. **GetMovementLog:** Para recuperar y registrar el movimiento de stock, incluyendo cantidad, tipo de movimiento y descripciones.
-                    5. **StockValuation:** Para obtener una evaluación del stock basada en parámetros especificados.
-                    6. **StockManagement:** Para actualizar, eliminar o añadir artículos al stock.
-                    7. **MovementLogger:** Para logear movimientos del inventario.
-                   
+                    1. **Overview:** Función para la generación de resúmenes analíticos del estado actual del inventario, integrando algoritmos de síntesis de datos.
+                    2. **Search:** Módulo de búsqueda avanzada, empleando consultas parametrizadas para la identificación y localización precisa de ítems dentro del inventario.
+                    3. **PriceChange:** Interfaz para la modificación de precios de los artículos, incorporando funcionalidades para ajustes basados en valores absolutos o porcentajes relativos, apoyándose en algoritmos de revalorización.
+                    4. **GetMovementLog:** Herramienta para la extracción y documentación de datos de movimientos de stock, incluyendo variables como volumen, naturaleza del movimiento (entrada/salida) y metadata descriptiva.
+                    5. **StockValuation:** Sistema para la evaluación cuantitativa del stock, fundamentado en parámetros definidos por el usuario, utilizando modelos de valoración de inventario.
+                    6. **StockManagement:** Conjunto de operaciones para la gestión de inventario, incluyendo actualizaciones, eliminaciones o adiciones de artículos, soportadas por una base de datos dinámica.
+                    7. **MovementLogger:** Componente para el registro sistemático de alteraciones en el inventario, capturando eventos y transacciones en tiempo real.
+
+                    **Archivos Adjuntos:**
+                    En la instancia de archivos adjuntos, estos se presentarán bajo el formato "Archivos adjuntos:
+                    [nombre_del_archivo].[extensión]", donde la extensión del archivo
+                    (.csv, .xlsx, .json, etc.) determinará el formato y estructura del dato contenido, 
+                    adecuado para su procesamiento y análisis por parte del LLM.
+                    
 
                     **Interacción del Usuario y Funcionalidad:**
                     - Proporcionar una interfaz amigable para interactuar con los puntos de acceso de la API.
@@ -178,7 +185,7 @@ def create_conversation(user_id):
     db.session.add(new_conversation)
     db.session.commit()
     
-    return jsonify(message = 'Conversation created successfully', data = new_conversation.id), 201
+    return jsonify(message = 'Conversation created successfully', data = new_conversation.jsonify()), 201
 
 
 @routes.route('/conversations', methods = ['GET'])
@@ -196,7 +203,7 @@ def get_conversations():
     if agent == None:
         return 'user_id invalid', 404
     
-    conversations = [conversation.id for conversation in agent.conversations]
+    conversations = [conversation.jsonify() for conversation in agent.conversations]
     
     return jsonify(data = conversations), 200
 
@@ -247,21 +254,32 @@ def delete_conversation():
 
 @routes.route('/files', methods=['GET'])
 def download_file():
-    print('HERE')
     filename = request.args.get('filename')
     directory = 'files/'
     return send_from_directory(directory, filename)
-    
+
+
 def upload_files(files):
     file_ids = []
     for file in files:
-        uploaded_file = openai_client.files.create(
-            file=file,
-            purpose="assistant"
-        )
-        file_ids.append(uploaded_file.id)
+        # Save the file to the system
+        filename = file.filename
+        with open(filename, 'wb') as f:
+            f.write(file.read())
+
+        # Read the file from the system
+        with open(filename, 'rb') as saved_file:
+            uploaded_file = openai_client.files.create(
+                file=saved_file,
+                purpose="assistants"
+            )
+            file_ids.append(uploaded_file.id)
+
+        # Delete the file from the system
+        os.remove(filename)
         
     return file_ids
+    
 
 @routes.route('/prompt', methods = ['POST'])
 def process_prompt():
@@ -271,14 +289,15 @@ def process_prompt():
     # Branch to function if neccessary
     # return response
     
-    data = request.get_json()
-    prompt = data['prompt']
-    thread_id = data['thread_id']
+    prompt = request.form.get('prompt')
+    thread_id = request.form.get('thread_id')
     files = request.files.getlist('files')
     
     file_ids = upload_files(files) 
     conversation = Conversation.query.get(thread_id)
     agent_id = conversation.agent_id
+    
+    company_name = Agent.query.get(agent_id).company_name
     
     message = openai_client.beta.threads.messages.create(
         thread_id=thread_id,
@@ -325,7 +344,7 @@ def process_prompt():
         
         if run.status == "requires_action":
             
-            tool_outputs = call_functions(run.required_action.submit_tool_outputs.tool_calls)
+            tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
         
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=thread_id,

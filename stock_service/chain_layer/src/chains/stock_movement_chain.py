@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class StockMovementTracking():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def log_stock_movement(self, movement_data):
         movement_data['company_name'] = self.company_name
@@ -25,7 +25,10 @@ class StockMovementTracking():
         
         return {"error": "Failed to fetch stock movements log"}
 
-    def execute(self, movement_data=None):
+    def execute(self, company_name, movement_data=None):
+        
+        self.company_name = company_name
+        
         if movement_data is not None:
             result = self.log_stock_movement(movement_data)
         else:

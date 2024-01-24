@@ -41,11 +41,11 @@ functions = load_tools_from_directory('functions')
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
     app.config['SECRET_KEY'] = 'secret'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agents.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'secret'
+    CORS(app)
     from .models import Agent, Conversation
     from .routes import routes
     app.register_blueprint(routes)

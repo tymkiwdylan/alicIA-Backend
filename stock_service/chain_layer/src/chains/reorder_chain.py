@@ -5,8 +5,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class ReorderAlerts():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def monitor_stock_levels(self):
         response = requests.get(f"{API_BASE}/stock-levels", json={'company_name': self.company_name})
@@ -52,7 +52,9 @@ class ReorderAlerts():
 
         return expiration_alert
 
-    def execute(self, reorder_point):
+    def execute(self, company_name, reorder_point):
+        self.company_name = company_name
+        
         stock_levels = self.monitor_stock_levels()
         
         if not stock_levels:

@@ -4,8 +4,8 @@ from bson import json_util
 API_BASE = "http://data-layer:5000"
 
 class StockValuation():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
 
     def fetch_items(self):
         params = {'company_name': self.company_name}
@@ -44,7 +44,10 @@ class StockValuation():
 
         return most_valuable_items
 
-    def execute(self, num_items=5):
+    def execute(self, company_name, num_items=5):
+        
+        self.company_name = company_name
+        
         # Step 1: Fetch all items
         items = self.fetch_items()
         

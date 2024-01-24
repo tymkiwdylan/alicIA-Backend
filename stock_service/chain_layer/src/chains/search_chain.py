@@ -4,8 +4,8 @@ from bson import json_util
 
 API_BASE = "http://data-layer:5000"
 class StockSearch():
-    def __init__(self, company_name):
-        self.company_name = company_name
+    def __init__(self):
+        self.company_name = None
         
     def search_items(self, query):
         response = requests.get(f"{API_BASE}/items/search", json={'query': query,
@@ -37,7 +37,9 @@ class StockSearch():
         
         return 0
     
-    def execute(self, query):
+    def execute(self, company_name, query):
+        
+        self.company_name = company_name
         
         item = self.get_item_by_id(query)
         
