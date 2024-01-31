@@ -50,7 +50,7 @@ class StockManagement():
                     }
                 },
             },
-            "required": ["queries", ]
+            "required": ["queries"]
         }
     }
 
@@ -66,6 +66,7 @@ class StockManagement():
             # Check if the response is successful
             if response.status_code == 200:
                 return {
+                    "status_code": 200,  # The status code of the response
                     "message": "Stock successfully managed",
                     "data": response.json()  # Process the response data as needed
                 }

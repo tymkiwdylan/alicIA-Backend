@@ -8,27 +8,34 @@ class InventoryOverviewChain():
         self.company_name = None
 
     def fetch_all_items(self):
-        items_response = requests.get(f"{API_BASE}/items", json = {'company_name': self.company_name})
+        items_response = requests.get(f"{API_BASE}/items", json={'company_name': self.company_name})
         items = items_response.json()['data']
         return json_util.loads(items)
 
-    def fetch_stock_level(self, item_id):
-        stock_level_response = requests.get(f"{API_BASE}/stock-levels/{item_id}", json = {'company_name': self.company_name})
-        stock_level = stock_level_response.json()['data']
-        return json_util.loads(stock_level)
+    def fetch_stock_levels(self, item_ids):
+        stock_levels_response = requests.post(f"{API_BASE}/stock-levels", json={'company_name': self.company_name, 'ids': item_ids})
+        print(f'{stock_levels_response.json()} Perrrooooooooo')
+        stock_levels = stock_levels_response.json()['data']
+        return {level['item_id']: level for level in json_util.loads(stock_levels)}
 
-    def analyze_stock_levels(self, stock_level):
+    def analyze_stock_level(self, stock_level):
         if stock_level == 0:
-            return 'Out of stock'
+            return 'Fuera de stock'
         elif stock_level < 10:
-            return 'Low stock'
+            return 'Stock bajo'
         else:
-            return 'In stock'
+            return 'En stock'
 
     def categorize_items(self, items):
+        item_ids = json_util.dumps([item['_id'] for item in items])
+        stock_levels = self.fetch_stock_levels(item_ids)
+        
+        print(stock_levels)
+
         for item in items:
-            stock_level = self.fetch_stock_level(item['_id'])
-            item['status'] = self.analyze_stock_levels(stock_level['current_stock'] if stock_level != None else 0)
+            item_id = item['_id']
+            stock_level = stock_levels.get(item_id, {'current_stock': 0})['current_stock']
+            item['status'] = self.analyze_stock_level(stock_level)
         return items
 
     def execute(self, company_name):

@@ -6,6 +6,7 @@ from . import openai_client
 from . import functions
 from .models import Agent, Conversation, Message
 import os
+import requests
 
 routes = Blueprint('routes', __name__)
 
@@ -160,9 +161,22 @@ def create_assistant():
     db.session.add(new_agent)
     db.session.commit()
     
+    db_init = init_db(company_name)
+    
+    if db_init == False:
+        return jsonify(message = 'Error while initializing the database. Contact support'), 500
+    
     return jsonify(message = 'Success', data = new_agent.jsonify())
 
 
+def init_db(company_name):
+    response = requests.post('http://data-layer:5000/init-db', json={'company_name': company_name})
+    
+    if response.status_code != 201:
+        return False
+    
+    return True
+    
 
 @routes.route('/assistant/<user_id>', methods = ['PUT'])
 def update_assistant(user_id):
@@ -465,10 +479,6 @@ def process_prompt():
             print(run)
             return "Request Failed to Complete", 204
         
-        
-        
-
-
 def process_completion(response):
     message_content = ''
     annotations = []
@@ -518,3 +528,16 @@ def process_completion(response):
 
     
     return message_content
+    
+
+@routes.route('/load-products', methods=['POST'])
+def load_products():
+    file = request.files.get('file')
+    user_id = request.form.get('user_id')
+    
+    company_name = Agent.query.filter_by(user_id=user_id).first().company_name
+
+    # Send the file and company_name to the data layer for processing
+    response = requests.post('http://data-layer:5000/load-from-file', files={'file': file}, data={'company_name': company_name})
+
+    return jsonify(response.json()), response.status_code

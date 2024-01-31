@@ -1,8 +1,13 @@
+import os
 from flask import Blueprint, request, jsonify
 from bson import json_util, ObjectId
 from . import mongo
+from pymongo.errors import BulkWriteError
+from pymongo import UpdateOne
 from .models import *
-from flask_jwt_extended import jwt_required, get_jwt_identity
+import pandas as pd
+import requests
+from requests.auth import HTTPDigestAuth
 
 routes = Blueprint('routes', __name__)
 
@@ -19,8 +24,7 @@ def internal_error(error):
     """
     return jsonify(message="Internal Server Error"), 500
 
-@routes.route('/new-stock', methods=['POST'])
-@jwt_required(optional=True)
+@routes.route('/init-db', methods=['POST'])
 def new_stock():
     """
     Create a new set of collections for stock management related to the current user's company.
@@ -30,20 +34,47 @@ def new_stock():
     Returns:
         JSON response with a success message or an error message.
     """
-    current_user = User.query.filter_by(username=get_jwt_identity()).first()
+    company_name = request.get_json()['company_name']
     
-    if current_user:
-        company_name = current_user.company_name
-        
+    if company_name:     
         collections_to_create = ['Items', 'StockLevels', 'StockMovements', 'Suppliers', 'Batches', 'Locations']
         
         for collection in collections_to_create:
             mongo.db.create_collection(f'{company_name}_{collection}')
-            mongo.db[f'{company_name}_{collection}'].create_index('item_id', unique=True)
+            mongo.db[f'{company_name}_{collection}'].create_index('item_id')
+        
+        mongo.db[f'{company_name}_Items'].create_index('SKU')
+        response = create_search_index(f'{company_name}_Items')
+        
+        if response.status_code != 200:
+            return jsonify(message='Something went wrong. Please try again later or contact support.'), 500
         
         return jsonify(message='Company stock created successfully'), 201
     
     return 'Company not found', 404
+
+def create_search_index(collection_name):
+    #Should move keys to .env later
+    headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.atlas.2023-02-01+json'
+    }
+
+    response = requests.post(
+        'https://cloud.mongodb.com/api/atlas/v2/groups/651c60b6f0266870bf2ef50b/clusters/Stock/fts/indexes',
+        headers=headers,
+        auth=HTTPDigestAuth('atvnxtkh', 'a50cadb1-955b-45cf-b91e-abcd983e4cab'),
+        json={
+            "collectionName": collection_name,
+            "database": "stock",
+            "name": "item_search",
+            "mappings": {
+                "dynamic": True,
+            }
+        }
+    )   
+    
+    return response
 
 # Items routes
 
@@ -64,7 +95,6 @@ def get_items():
     return jsonify(message='success', data=items), 200
 
 @routes.route('/items', methods=['POST'])
-@jwt_required(optional=True)
 def add_item():
     """
     Add a new item to a company's inventory.
@@ -140,7 +170,6 @@ def get_item(id):
                        with item_search'''), 500
 
 @routes.route('/items/<id>', methods=['PUT'])
-@jwt_required(optional=True)
 def update_item(id):
     """
     Update information about a specific item by its ID.
@@ -173,7 +202,6 @@ def update_item(id):
         
 
 @routes.route('/items/<id>', methods=['DELETE'])
-@jwt_required(optional=True)
 def delete_item(id):
     """
     Delete a specific item by its ID.
@@ -204,69 +232,51 @@ def delete_item(id):
 
 # Stock Levels routes
 
-@routes.route('/stock-levels/<id>', methods=['GET'])
-@jwt_required(optional=True)
-def get_stock_levels(id):
-    """
-    Get the stock levels for a specific item by its ID.
-
-    This route is protected and requires a valid JWT for access.
-
-    Args:
-        id: The ID of the item.
-
-    Returns:
-        JSON response with the stock levels or an error message.
-    """
-    company_name = request.get_json()['company_name']
-    try:
-        stock = mongo.db[f'{company_name}_StockLevels'].find_one({'item_id': ObjectId(id)})
-        stock = json_util.dumps(stock)
-        return jsonify(message='success', data=stock), 200
-    except:
-        return jsonify(message= '''id must be in ObjectID format.
-                       You can find the id by calling get_items or by searching the item
-                       with item_search'''), 500
-
-@routes.route('/stock-levels/<id>', methods=['PUT'])
-@jwt_required(optional=True)
-def update_stock(id):
-    """
-    Update the stock level for a specific item by its ID.
-
-    This route is protected and requires a valid JWT for access.
-
-    Args:
-        id: The ID of the item.
-    
-    Returns:
-        JSON response with a success message or an error message.
-    """
+@routes.route('/stock-levels', methods=['POST'])  # Changed to POST to accept a list of IDs
+def get_stock_levels():
     data = request.get_json()
     company_name = data['company_name']
-    new_level = data['new_level']
+    ids = data['ids']  # Expecting a list of IDs
+    ids = json_util.loads(ids)
     try:
-        query = {'item_id': ObjectId(id)}
-        update = {'$set': {'current_stock': new_level}}
-        
-        # TODO: Implement concurrency checks or use transactions if multiple operations can update stock simultaneously
-        result = mongo.db[f'{company_name}_StockLevels'].update_one(query, update)
-        if result.matched_count < 1:
-            stock_level = {
-                'item_id': ObjectId(id),
-                'current_stock': new_level
-            }
-            mongo.db[f'{company_name}_StockLevels'].insert_one(stock_level)
-        return jsonify(message='Stock level updated successfully'), 200
+        object_ids = [ObjectId(id) for id in ids]
+        query = {'item_id': {'$in': object_ids}}
+        stocks = mongo.db[f'{company_name}_StockLevels'].find(query)
+        stocks = json_util.dumps(stocks)
+        return jsonify(message='success', data=stocks), 200
     except:
-        return jsonify(message= '''id must be in ObjectID format.
-                       You can find the id by calling get_items or by searching the item
-                       with item_search'''), 500
+        return jsonify(message='Error processing request. Ensure IDs are in the correct format.'), 500
+
+@routes.route('/stock-levels', methods=['PUT'])
+def update_stock():
+    data = request.get_json()
+    company_name = data['company_name']
+    updates = data['updates']  # Expecting a list of updates (each update is a dict with 'id' and 'new_level')
+
+    bulk_operations = []
+    for update in updates:
+        try:
+            query = {'item_id': ObjectId(update['id'])}
+        except Exception as e:
+            return jsonify(message=f'Invalid ID format: {str(e)}'), 400
+
+        new_level = {'$set': {'current_stock': update['new_level']}}
+        operation = UpdateOne(query, new_level, upsert=True)
+        bulk_operations.append(operation)
+
+    if bulk_operations:
+        try:
+            mongo.db[f'{company_name}_StockLevels'].bulk_write(bulk_operations)
+        except BulkWriteError as bwe:
+            return jsonify(message=f'Bulk write error: {bwe.details}'), 500
+        except Exception as e:
+            return jsonify(message=f'Error processing request: {str(e)}'), 500
+
+    return jsonify(message='Stock levels updated successfully'), 200
 
 # Stock Movements routes
 
 @routes.route('/stock-movements', methods=['GET'])
-@jwt_required(optional=True)
 def get_stock_movements():
     """
     Get a list of stock movements for a specific company.
@@ -282,7 +292,6 @@ def get_stock_movements():
     return jsonify(message='success', data=serialized_movements), 200
 
 @routes.route('/stock-movements', methods=['POST'])
-@jwt_required(optional=True)
 def log_stock_movement(): #TODO: record how to record logs and add to bot
     """
     Log a stock movement for a specific company.
@@ -302,7 +311,6 @@ def log_stock_movement(): #TODO: record how to record logs and add to bot
 # Suppliers routes
 
 @routes.route('/suppliers', methods=['GET'])
-@jwt_required()
 def get_suppliers():
     """
     Get a list of suppliers for a specific company.
@@ -318,7 +326,6 @@ def get_suppliers():
     return jsonify(message='success', data=serialized_suppliers), 200
 
 @routes.route('/suppliers', methods=['POST'])
-@jwt_required()
 def add_supplier():
     """
     Add a new supplier to a company's list of suppliers.
@@ -335,7 +342,6 @@ def add_supplier():
     return jsonify(message='Supplier added successfully'), 201
 
 @routes.route('/suppliers/<supplier_id>', methods=['GET'])
-@jwt_required(optional=True)
 def get_supplier(supplier_id):
     """
     Get information about a specific supplier by its ID.
@@ -360,7 +366,6 @@ def get_supplier(supplier_id):
                        You can find the id by calling get_suppliers'''), 500
 
 @routes.route('/suppliers/<supplier_id>', methods=['PUT'])
-@jwt_required()
 def update_supplier(supplier_id):
     """
     Update information about a specific supplier by its ID.
@@ -388,7 +393,6 @@ def update_supplier(supplier_id):
                        You can find the id by calling get_suppliers'''), 500
 
 @routes.route('/suppliers/<supplier_id>', methods=['DELETE'])
-@jwt_required()
 def delete_supplier(supplier_id):
     """
     Delete a specific supplier by its ID.
@@ -418,7 +422,6 @@ def delete_supplier(supplier_id):
 # Batches routes
 
 @routes.route('/batches/<item_id>', methods=['GET'])
-@jwt_required()
 def get_batches(item_id):
     """
     Get a list of batches for a specific item by its ID.
@@ -442,7 +445,6 @@ def get_batches(item_id):
                        with item_search'''), 500
 
 @routes.route('/batches', methods=['POST'])
-@jwt_required(optional=True)
 def add_batch():
     """
     Add a new batch of items to a company's inventory.
@@ -467,7 +469,6 @@ def add_batch():
                        with item_search'''), 500
 
 @routes.route('/batches/<batch_id>', methods=['PUT'])
-@jwt_required()
 def update_batch(batch_id):
     """
     Update information about a specific batch by its ID.
@@ -495,7 +496,6 @@ def update_batch(batch_id):
                        You can find the id by calling get_batches'''), 500
 
 @routes.route('/batches/<batch_id>', methods=['DELETE'])
-@jwt_required()
 def delete_batch(batch_id):
     """
     Delete a specific batch by its ID.
@@ -524,7 +524,6 @@ def delete_batch(batch_id):
 # Locations routes
 
 @routes.route('/locations', methods=['GET'])
-@jwt_required(optional=True)
 def get_locations():
     """
     Get a list of locations for a specific company.
@@ -540,7 +539,6 @@ def get_locations():
     return jsonify(message='success', data=serialized_locations), 200
 
 @routes.route('/locations', methods=['POST'])
-@jwt_required(optional=True)
 def add_location():
     """
     Add a new location to a company's list of locations.
@@ -557,7 +555,6 @@ def add_location():
     return jsonify(message='Location added successfully'), 201
 
 @routes.route('/locations/<location_id>', methods=['GET'])
-@jwt_required(optional=True)
 def get_location(location_id):
     """
     Get information about a specific location by its ID.
@@ -583,7 +580,6 @@ def get_location(location_id):
                        You can find the id by calling get_locations'''), 500
 
 @routes.route('/locations/<location_id>', methods=['PUT'])
-@jwt_required()
 def update_location(location_id):
     """
     Update information about a specific location by its ID.
@@ -611,7 +607,6 @@ def update_location(location_id):
                        You can find the id by calling get_locations'''), 500
 
 @routes.route('/locations/<location_id>', methods=['DELETE'])
-@jwt_required()
 def delete_location(location_id):
     """
     Delete a specific location by its ID.
@@ -636,3 +631,78 @@ def delete_location(location_id):
     except:
         return jsonify(message= '''id must be in ObjectID format.
                        You can find the id by calling get_locations'''), 500
+
+
+@routes.route('/load-from-file', methods=['POST'])
+def load_products():
+    file = request.files.get('file')
+    company_name = request.form.get('company_name')
+    print(company_name)
+    
+    # Check the file extension
+    filename, file_extension = os.path.splitext(file.filename)
+    
+    # Read the file using pandas
+    if file_extension == '.csv':
+        df = pd.read_csv(file)
+    else:
+        df = pd.read_excel(file)
+    
+    # Check for missing columns
+    required_columns = ['name', 'SKU', 'description', 'cost', 'price', 'stock_level']
+    missing_columns = [column for column in required_columns if column not in df.columns]
+    if missing_columns:
+        return jsonify({'error': f'Missing columns: {", ".join(missing_columns)}'}), 400
+
+    # Preparing bulk operations for items
+    items_operations = []
+    sku_to_stock_level = {}
+    for _, row in df.iterrows():
+        item = {
+        "name": row['name'],
+        "SKU": row['SKU'],
+        "description": row['description'] if not pd.isnull(row['description']) else "",
+        "cost": int(row['cost']) if not pd.isnull(row['cost']) else 0,
+        "price": int(row['price'])
+        }
+        sku_to_stock_level[item['SKU']] = int(row['stock_level']) if not pd.isnull(row['stock_level']) else 0
+        items_operations.append(UpdateOne({'SKU': item['SKU']}, {'$set': item}, upsert=True))
+
+    # Execute bulk write operations for items
+    if items_operations:
+        mongo.db[f'{company_name}_Items'].bulk_write(items_operations)
+
+    # Handle small datasets without batch processing
+    total_entries = len(df)
+    if total_entries <= 5:
+        # Directly process each entry
+        for sku, stock_level in sku_to_stock_level.items():
+            item_id = mongo.db[f'{company_name}_Items'].find_one({'SKU': sku})['_id']
+            mongo.db[f'{company_name}_StockLevels'].update_one(
+                {'item_id': item_id},
+                {'$set': {'current_stock': stock_level}},
+                upsert=True
+            )
+    else:
+        # Dynamic Batch Size Calculation for larger datasets
+        batch_size = max(50, min(500, total_entries // 5))
+        skus = list(sku_to_stock_level.keys())
+        stock_level_operations = []
+
+        for i in range(0, len(skus), batch_size):
+            batch_skus = skus[i:i + batch_size]
+            items = mongo.db[f'{company_name}_Items'].find({'SKU': {'$in': batch_skus}})
+            
+            sku_to_id = {item['SKU']: item['_id'] for item in items}
+            for sku, item_id in sku_to_id.items():
+                stock_level_operations.append(UpdateOne(
+                    {'item_id': item_id}, 
+                    {'$set': {'current_stock': sku_to_stock_level[sku]}}, 
+                    upsert=True
+                ))
+
+        # Execute bulk write operations for stock levels
+        if stock_level_operations:
+            mongo.db[f'{company_name}_StockLevels'].bulk_write(stock_level_operations)
+
+    return jsonify(message='Success'), 200
