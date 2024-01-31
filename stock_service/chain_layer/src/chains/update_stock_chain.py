@@ -15,7 +15,7 @@ class StockUpdateChain():
             return None
 
     def update_stock_level(self, stock_updates):
-        response = requests.put(f"{API_BASE}/stock-levels", json={'company_name': self.company_name, 'updates': stock_updates})
+        response = requests.put(f"{API_BASE}/stock-levels", json={'company_name': self.company_name, 'updates': json_util.dumps(stock_updates)})
         return response.status_code == 200
 
     def delete_item(self, id):
@@ -32,7 +32,7 @@ class StockUpdateChain():
             if option == 'add':
                 item_id = self.add_item(query.get('item', {}))
                 if item_id:
-                    stock_updates.append({'id': str(item_id), 'new_level': query.get('new_level', 0)})
+                    stock_updates.append({'id': item_id, 'new_level': query.get('new_level', 0)})
                     results.append(f"Item added with ID: {item_id}")
                 else:
                     results.append("Failed to add item")

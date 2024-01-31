@@ -14,7 +14,6 @@ class InventoryOverviewChain():
 
     def fetch_stock_levels(self, item_ids):
         stock_levels_response = requests.post(f"{API_BASE}/stock-levels", json={'company_name': self.company_name, 'ids': item_ids})
-        print(f'{stock_levels_response.json()} Perrrooooooooo')
         stock_levels = stock_levels_response.json()['data']
         return {level['item_id']: level for level in json_util.loads(stock_levels)}
 
@@ -29,8 +28,6 @@ class InventoryOverviewChain():
     def categorize_items(self, items):
         item_ids = json_util.dumps([item['_id'] for item in items])
         stock_levels = self.fetch_stock_levels(item_ids)
-        
-        print(stock_levels)
 
         for item in items:
             item_id = item['_id']

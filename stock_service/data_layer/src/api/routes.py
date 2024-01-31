@@ -251,7 +251,7 @@ def get_stock_levels():
 def update_stock():
     data = request.get_json()
     company_name = data['company_name']
-    updates = data['updates']  # Expecting a list of updates (each update is a dict with 'id' and 'new_level')
+    updates = json_util.loads(data['updates'])  # Expecting a list of updates (each update is a dict with 'id' and 'new_level')
 
     bulk_operations = []
     for update in updates:
