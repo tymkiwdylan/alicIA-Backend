@@ -18,4 +18,4 @@ COPY src/ .
 EXPOSE 7000
 
 # Command to run the application
-CMD ["python","-u", "main.py"]
+CMD ["python", "main.py"]

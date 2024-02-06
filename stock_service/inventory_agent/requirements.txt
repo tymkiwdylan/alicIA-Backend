@@ -6,3 +6,4 @@ Requests==2.31.0
 flask-cors
 pandas
 openpyxl
+newrelic

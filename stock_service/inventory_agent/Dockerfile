@@ -14,8 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the content of the local src directory to the working directory
 COPY src/ .
 
+# Set the New Relic configuration file environment variable
+ENV NEW_RELIC_CONFIG_FILE=newrelic.ini
+
 # Specify the port the app runs on
 EXPOSE 5001
 
 # Command to run the application
-CMD ["python","-u", "app.py"]
+CMD ["newrelic-admin", "run-program", "python", "app.py"]
