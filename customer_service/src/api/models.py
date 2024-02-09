@@ -1,14 +1,18 @@
 from . import db 
 
 class Agent(db.Model):
-    id = db.Column(db.String(256), primary_key = True)
+    id = db.Column(db.String(256), primary_key=True)
     user_id = db.Column(db.Integer, unique=True)
-    business_phone_number = db.Column(db.String(256), unique = True, nullable = False)
+    business_phone_number = db.Column(db.String(256), unique=True, nullable=False)
     description = db.Column(db.String(512))
     tone = db.Column(db.String(256))
     company_name = db.Column(db.String(128))
+    waba_id = db.Column(db.String(256), unique=True, nullable=False)  # WhatsApp Business Account ID
+    facebook_page_id = db.Column(db.String(256), unique=True)  # Facebook Page ID linked to WABA
+    access_token = db.Column(db.String(512), nullable=False)  # Access token for API calls
+    token_expiry = db.Column(db.DateTime)  # Expiry date/time of the access token
     conversations = db.relationship('Conversation')
-    
+
     def jsonify(self):
         conversations = [conversation.jsonify() for conversation in self.conversations]
 
@@ -19,6 +23,10 @@ class Agent(db.Model):
             'description': self.description,
             'tone': self.tone,
             'company_name': self.company_name,
+            'waba_id': self.waba_id,
+            'facebook_page_id': self.facebook_page_id,
+            'access_token': self.access_token,
+            'token_expiry': self.token_expiry.isoformat() if self.token_expiry else None,
             'conversations': conversations
         }
 class Conversation(db.Model):
