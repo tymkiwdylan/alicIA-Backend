@@ -5,6 +5,9 @@ from twilio.twiml.messaging_response import MessagingResponse
 from .services import *
 from . import db
 from .models import Agent, Conversation, Message
+from requests import Session
+import sqlalchemy.exc
+from waba_client import get_facebook_access_token, get_waba_details
 
 
 routes = Blueprint('routes', __name__)
@@ -23,8 +26,6 @@ def create_assistant():
     description = f'''This is an customer Assistant for {company_name}'''
     
     tone = data['tone']
-    
-    phone_number = data['phone_number']
     
     contact_number = data['contact_number']
     
@@ -98,7 +99,6 @@ def create_assistant():
         tone = tone,
         company_name = company_name,
         description = description,
-        business_phone_number = phone_number
         )
     
     db.session.add(new_agent)
@@ -139,7 +139,6 @@ def get_messages():
     return jsonify(data = conversation['messages'])
     
     
-    
 @routes.route('/sms', methods=['POST'])
 def sms_reply():
     incoming_msg = request.form.get('Body')
@@ -163,6 +162,28 @@ def sms_reply():
     resp.message("")
     return str(resp), 200
 
+@routes.route('/message_reply', methods=['POST'])
+def message_reply():
+    incoming_msg = request.json['messages'][0]['text']['body']
+    from_number = request.json['messages'][0]['from']
+    to_number = request.json['messages'][0]['to']  # Your WhatsApp number
+
+    # Lookup the agent based on the to_number (business phone number)
+    agent = Agent.query.filter_by(business_phone_number=to_number).first()
+    if not agent:
+        logging.error("Agent not found for the given business phone number.")
+        return jsonify({"error": "Agent not found"}), 404
+
+    if incoming_msg:
+        # Here, adapt get_chatgpt_response to work with WhatsApp Business API
+        answer = get_chatgpt_response(incoming_msg, from_number, to_number)
+        # Use the sendWhatsAppMessage function, ensuring to pass agent details for dynamic credential selection
+        sendWhatsAppMessage(answer, from_number, agent)
+    else:
+        sendWhatsAppMessage("Message cannot be empty!", from_number, agent)
+
+    # WhatsApp Business API does not require a response body for webhook events
+    return jsonify(success=True), 200
 
 @routes.route('/numbers', methods=['GET'])
 def available_numbers():
@@ -187,3 +208,39 @@ def purchase_number():
         return jsonify(message = 'Number purchased Succesfully', data = {'number': purchased_number.phone_number}), 200
     except Exception as e:
         return jsonify(message = 'Oops something went wrong', error = str(e)), 500
+
+
+@routes.route('/waba-signup', methods=['POST'])
+def waba_signup():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    code = data.get('code')
+
+    if not user_id or not code:
+        return jsonify(message='Missing user_id or code'), 400
+
+    agent = Agent.query.filter_by(user_id=user_id).first()
+    if agent is None:
+        return jsonify(message='Agent not set up'), 400
+
+    try:
+        with Session() as session:
+            access_token = get_facebook_access_token(session)
+            user_access_token = get_facebook_access_token(session, code)
+            phone_number, number_id, waba_id = get_waba_details(session, access_token, user_access_token)
+
+            agent.access_token = user_access_token
+            agent.waba_id = waba_id
+            agent.number_id = number_id
+            agent.business_phone_number = phone_number
+
+            db.session.commit()
+            return jsonify(message='WABA setup successful', data={'phone_number': phone_number}), 200
+    except (sqlalchemy.exc.SQLAlchemyError, requests.exceptions.RequestException) as e:
+        db.session.rollback()
+        return jsonify(message='Oops something went wrong', error=str(e)), 500
+
+        
+        
+        
+    
