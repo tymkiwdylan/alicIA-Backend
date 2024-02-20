@@ -50,7 +50,7 @@ def call_functions(required_functions):
     
 
 
-def sendMessage(body_mess, phone_number):
+def sendMessage(body_mess, phone_number, business_number):
     try:
         MAX_MESSAGE_LENGTH = 550 
 
@@ -85,7 +85,7 @@ def sendMessage(body_mess, phone_number):
             logging.debug(f"Sending message chunk: {final_chunk} to {phone_number}")
             
             message = client.messages.create(
-                from_='whatsapp:+18552956999',
+                from_='whatsapp:' + business_number,
                 body=final_chunk,
                 to='whatsapp:' + phone_number
             )

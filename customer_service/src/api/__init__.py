@@ -6,6 +6,7 @@ import importlib
 import pkgutil
 from pathlib import Path 
 from twilio.rest import Client
+from flask_cors import CORS
 
 def load_tools_from_directory(directory):
     tools = {}
@@ -49,10 +50,10 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agents.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'secret'
+    CORS(app)
     from .models import Agent, Conversation, Message
     from .routes import routes
     app.register_blueprint(routes)
-    
     db.init_app(app)
     create_db(app)
     
