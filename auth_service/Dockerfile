@@ -18,4 +18,4 @@ COPY src/ .
 EXPOSE 5000
 
 # Command to run the application
-CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:5000", "--workers", "3"]
