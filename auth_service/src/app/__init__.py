@@ -2,30 +2,25 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_migrate import Migrate
 
-# Initialize the database and migration objects
 db = SQLAlchemy()
-migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-
-    # Configuration using environment variables
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql+psycopg2://postgres:alicia2314@34.95.254.138/postgres')
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    # Initialize extensions
-    db.init_app(app)
-    migrate.init_app(app, db)
-    CORS(app)
-
-    # Import models here so that they are registered with SQLAlchemy
-    from .models import User  # Replace with your actual models module path
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///auth.db'  # Use appropriate database
+    app.config['SECRET_KEY'] = 'your-secret-key'  # Change to a random secret
+    # CORS(app)
     
-    # Import and register blueprints
-    from .routes import auth as auth_blueprint  # Replace with your actual routes module path
+    from .models import User
+    db.init_app(app)
+    create_db(app)
+    CORS(app)
+    from .routes import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
 
     return app
+
+def create_db(app):
+    if not(os.path.exists('instance/auth.db')):
+        with app.app_context():
+            db.create_all()
