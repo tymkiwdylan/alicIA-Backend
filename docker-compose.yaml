@@ -27,7 +27,7 @@ services:
   auth:
     build: ./auth_service
     environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:alicia2134@cloud_sql_proxy:5432/postgres
+      - SQLALCHEMY_DATABASE_URI=postgresql://alicia:alicia@cloud_sql_proxy:3306/alicia
     networks:
       - webnet
       - sqlnet
