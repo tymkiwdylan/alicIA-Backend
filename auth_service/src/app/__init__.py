@@ -8,7 +8,7 @@ db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://root:aliciad@alicia/alicia?unix_socket =/cloudsql/alicia-415212::alicia-auth" # Use appropriate database
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://alicia:aliciad@34.95.254.138/alicia" # Use appropriate database
     app.config['SECRET_KEY'] = 'your-secret-key'  # Change to a random secret
     
     db.init_app(app)
