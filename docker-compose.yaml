@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+
+  inventory-agent:
+    build: ./stock_service/inventory_agent
+    networks:
+      - webnet
+
+  customer-agent:
+    build: ./customer_service
+    networks:
+      - webnet
+  
+  auth:
+    build: ./auth_service
+    networks:
+      - webnet
+
+  chain-layer:
+    build: ./stock_service/chain_layer
+    networks:
+      - webnet
+
+  data-layer:
+    build: ./stock_service/data_layer
+    networks:
+      - webnet
+
+networks:
+  webnet:
