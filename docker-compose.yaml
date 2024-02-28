@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   nginx:
     build: ./nginx
@@ -9,18 +10,27 @@ services:
 
   inventory-agent:
     build: ./stock_service/inventory_agent
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:alicia2134@cloud_sql_proxy:5432/postgres
     networks:
       - webnet
+      - sqlnet
 
   customer-agent:
     build: ./customer_service
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:alicia2134@cloud_sql_proxy:5432/postgres
     networks:
       - webnet
-  
+      - sqlnet
+
   auth:
     build: ./auth_service
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:alicia2134@cloud_sql_proxy:5432/postgres
     networks:
       - webnet
+      - sqlnet
 
   chain-layer:
     build: ./stock_service/chain_layer
@@ -32,5 +42,16 @@ services:
     networks:
       - webnet
 
+  cloud_sql_proxy:
+    image: gcr.io/cloudsql-docker/gce-proxy:1.19.1
+    command: >
+      /cloud_sql_proxy -instances=alicia-415212:southamerica-east1:alicia-auth=tcp:5432,
+      alicia-415212:us-central1:alicia-customer=tcp:5432,
+      alicia-415212:us-central1:alicia-inventory=tcp:5432
+    restart: on-failure
+    networks:
+      - sqlnet
+
 networks:
   webnet:
+  sqlnet:
