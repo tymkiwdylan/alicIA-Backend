@@ -6,6 +6,7 @@ import importlib
 import pkgutil
 from pathlib import Path 
 from twilio.rest import Client
+from flask_migrate import Migrate  
 
 def load_tools_from_directory(directory):
     tools = {}
@@ -46,7 +47,7 @@ client = Client(account_sid, auth_token)
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'secret'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///agents.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://alicia:alicia@34.95.254.138/customer" 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'secret'
     from .models import Agent, Conversation, Message
@@ -54,12 +55,7 @@ def create_app():
     app.register_blueprint(routes)
     
     db.init_app(app)
-    create_db(app)
+    migrate = Migrate(app, db)
     
     return app
-
-def create_db(app):
-    if not(os.path.exists('instance/agents.db')):
-        with app.app_context():
-            db.create_all()
       

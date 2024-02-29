@@ -4,3 +4,4 @@ openai==1.6.1
 Requests==2.31.0
 tinydb==4.8.0
 twilio==8.11.0
+flask_migrate
