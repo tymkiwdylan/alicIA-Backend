@@ -52,7 +52,7 @@ class Conversation(db.Model):
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     role = db.Column(db.String(40))
-    conversation_id = db.Column(db.String(256), db.ForeignKey('conversation.id'))
+    conversation_id = db.Column(db.Integer, db.ForeignKey('conversation.id'))
     content = db.Column(db.Text)
     
     def jsonify(self):
