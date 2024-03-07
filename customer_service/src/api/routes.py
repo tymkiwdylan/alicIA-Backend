@@ -109,7 +109,7 @@ def create_assistant():
 @routes.route('/assistant', methods = ['GET'])
 def get_assistant():
     user_id = request.args.get('user_id')
-    agent = Agent.query.filter_by(user_id=user_id)
+    agent = Agent.query.filter_by(user_id=user_id).first()
     return jsonify(data = agent.jsonify()), 200
 
 @routes.route('/assistant/<user_id>', methods = ['PUT'])
