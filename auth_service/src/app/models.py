@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(100))
+    password_hash = db.Column(db.String(256))
     company_name = db.Column(db.String(256))
     stripe_customer_id = db.Column(db.String(256))
     active = db.Column(db.Boolean, default=False)

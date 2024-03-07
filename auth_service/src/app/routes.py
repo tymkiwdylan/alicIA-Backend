@@ -32,7 +32,7 @@ def register():
     # Create new user in the database
     new_user = User(
         email=email,
-        password_hash=generate_password_hash(password),
+        password_hash=generate_password_hash(password, method='sha256'),
         company_name=company_name
     )
     db.session.add(new_user)
@@ -69,7 +69,7 @@ def login():
 
     # Check if user exists
     user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password_hash, password):
+    if not user or not check_password_hash(user.password_hash, password, method='sha256'):
         return jsonify({'message': 'Invalid credentials'}), 401
 
     # Generate token
