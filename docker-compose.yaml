@@ -18,21 +18,21 @@ services:
   inventory-agent:
     build: ./stock_service/inventory_agent
     volumes:
-      - ./stock_service/inventory_agent/src/app/migrations:/app/migrations  # Example path, adjust accordingly
+      - ./stock_service/inventory_agent/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
 
   customer-agent:
     build: ./customer_service
     volumes:
-      - ./customer_service/src/app/migrations:/app/migrations  # Example path, adjust accordingly
+      - ./customer_service/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
 
   auth:
     build: ./auth_service
     volumes:
-      - ./auth_service/src/app/migrations:/app/migrations  # Example path, adjust accordingly
+      - ./auth_service/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
 
