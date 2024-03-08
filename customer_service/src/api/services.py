@@ -2,6 +2,7 @@
 import logging
 import time
 import json
+import requests
 from twilio.twiml.messaging_response import MessagingResponse
 from tinydb import TinyDB
 from tinydb import Query
@@ -49,7 +50,7 @@ def call_functions(required_functions):
     
 
 
-def sendMessage(body_mess, phone_number):
+def sendMessage(body_mess, phone_number, business_number):
     try:
         MAX_MESSAGE_LENGTH = 550 
 
@@ -84,7 +85,7 @@ def sendMessage(body_mess, phone_number):
             logging.debug(f"Sending message chunk: {final_chunk} to {phone_number}")
             
             message = client.messages.create(
-                from_='whatsapp:+18552956999',
+                from_='whatsapp:' + business_number,
                 body=final_chunk,
                 to='whatsapp:' + phone_number
             )
@@ -93,6 +94,25 @@ def sendMessage(body_mess, phone_number):
 
     except Exception as e:
         logging.error(f"Failed to send message. Error: {str(e)}")
+        
+
+def sendWhatsAppMessage(body_msg, recipient_phone_number, agent):
+    url = f"https://graph.facebook.com/v13.0/{agent.number_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {agent.access_token}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": recipient_phone_number,
+        "type": "text",
+        "text": {"body": body_msg}
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        logging.error(f"Failed to send WhatsApp message. Error: {response.text}")
 
 def get_chatgpt_response(prompt, phone_number, business_number):
 

@@ -3,13 +3,16 @@ from . import db
 class Agent(db.Model):
     id = db.Column(db.String(256), primary_key=True)
     user_id = db.Column(db.Integer, unique=True)
-    business_phone_number = db.Column(db.String(256), unique=True, nullable=False)
+    contact_number = db.Column(db.String(256))
+    business_phone_number = db.Column(db.String(256), unique=True)
+    number_id = db.Column(db.String(256), unique=True)
     description = db.Column(db.String(512))
     tone = db.Column(db.String(256))
+    custom_instructions = db.Column(db.Text)
     company_name = db.Column(db.String(128))
-    waba_id = db.Column(db.String(256), unique=True, nullable=False)  # WhatsApp Business Account ID
+    waba_id = db.Column(db.String(256), unique=True)  # WhatsApp Business Account ID
     facebook_page_id = db.Column(db.String(256), unique=True)  # Facebook Page ID linked to WABA
-    access_token = db.Column(db.String(512), nullable=False)  # Access token for API calls
+    access_token = db.Column(db.String(512))  # Access token for API calls
     token_expiry = db.Column(db.DateTime)  # Expiry date/time of the access token
     conversations = db.relationship('Conversation')
 
@@ -19,7 +22,9 @@ class Agent(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'contact_number': self.contact_number,
             'business_phone_number': self.business_phone_number,
+            'number_id': self.number_id,
             'description': self.description,
             'tone': self.tone,
             'company_name': self.company_name,

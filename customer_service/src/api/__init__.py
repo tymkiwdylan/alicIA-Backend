@@ -7,7 +7,7 @@ import pkgutil
 from pathlib import Path 
 from twilio.rest import Client
 from flask_cors import CORS
-from flask_migrate import Migrate  
+from flask_migrate import Migrate
 
 def load_tools_from_directory(directory):
     tools = {}
@@ -51,10 +51,10 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://alicia:alicia@34.95.254.138/customer" 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'secret'
+    CORS(app)
     from .models import Agent, Conversation, Message
     from .routes import routes
     app.register_blueprint(routes)
-    
     db.init_app(app)
     migrate = Migrate(app, db)
     
