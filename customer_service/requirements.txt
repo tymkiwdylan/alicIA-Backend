@@ -8,3 +8,5 @@ tinydb==4.8.0
 twilio==8.13.0
 python-dotenv==0.21.1
 gunicorn==20.1.0
+flask_migrate
+psycopg2-binary

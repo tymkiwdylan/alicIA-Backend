@@ -7,3 +7,6 @@ flask-cors
 pandas
 openpyxl
 newrelic
+flask_migrate
+gunicorn
+psycopg2-binary

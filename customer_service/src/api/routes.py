@@ -10,6 +10,7 @@ import sqlalchemy.exc
 from .waba_client import get_facebook_access_token, get_waba_details, handle_whatsapp_message, register_waba, verify, add_system_user
 
 
+
 routes = Blueprint('routes', __name__)
 
 # Initialize logging

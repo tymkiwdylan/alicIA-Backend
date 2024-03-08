@@ -1,24 +1,38 @@
 version: '3.8'
+
 services:
-  nginx:
-    build: ./nginx
+  webserver:
+    image: nginx:latest
     ports:
-      - "80:80"
+      - 80:80
+      - 443:443
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/:/etc/nginx/conf.d/:ro
+      - ./nginx/certbot/www:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - webnet
 
   inventory-agent:
     build: ./stock_service/inventory_agent
+    volumes:
+      - ./stock_service/inventory_agent/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
 
   customer-agent:
     build: ./customer_service
+    volumes:
+      - ./customer_service/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
-  
+
   auth:
     build: ./auth_service
+    volumes:
+      - ./auth_service/src/migrations:/migrations  # Example path, adjust accordingly
     networks:
       - webnet
 
