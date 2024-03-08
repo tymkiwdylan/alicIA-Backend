@@ -6,6 +6,7 @@ import importlib
 import pkgutil
 from pathlib import Path 
 from twilio.rest import Client
+from flask_cors import CORS
 from flask_migrate import Migrate  
 
 def load_tools_from_directory(directory):
@@ -56,6 +57,8 @@ def create_app():
     
     db.init_app(app)
     migrate = Migrate(app, db)
+    
+    CORS(app)
     
     return app
       

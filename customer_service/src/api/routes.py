@@ -7,6 +7,7 @@ from . import db
 from .models import Agent, Conversation, Message
 
 
+
 routes = Blueprint('routes', __name__)
 
 # Initialize logging
@@ -110,6 +111,10 @@ def create_assistant():
 def get_assistant():
     user_id = request.args.get('user_id')
     agent = Agent.query.filter_by(user_id=user_id).first()
+    
+    if agent == None:
+        return 'Assitant has not been created yet', 404
+    
     return jsonify(data = agent.jsonify()), 200
 
 @routes.route('/assistant/<user_id>', methods = ['PUT'])
