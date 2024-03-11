@@ -501,7 +501,7 @@ def process_completion(response):
             with open(save_path, 'wb') as file:
                 file.write(file_data)
 
-            download_url = f'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files?filename={file_name}.png'
+            download_url = f'https://api.nortedev.net/inventory-agent/files?filename={file_name}.png'
             message_content += f'\n ![Imagen]({download_url})\n '
 
     # Process annotations and add footnotes
@@ -522,7 +522,7 @@ def process_completion(response):
             with open(save_path, 'wb') as file:
                 file.write(file_data)
                 
-            download_url = f'https://sensibly-liberal-feline.ngrok-free.app/inventory-agent/files?filename={file_name}'
+            download_url = f'https://api.nortedev.net/inventory-agent/files?filename={file_name}'
             
             message_content = message_content.replace(annotation.text, f'{download_url}')
 
