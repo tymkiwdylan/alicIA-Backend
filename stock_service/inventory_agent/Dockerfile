@@ -21,4 +21,4 @@ ENV NEW_RELIC_CONFIG_FILE=newrelic.ini
 EXPOSE 5001
 
 # Command to run the application
-CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:5001", "--workers", "3"]
+CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:5001", "--workers", "3", "--timeout", "1000"]

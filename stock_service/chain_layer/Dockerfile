@@ -18,4 +18,4 @@ COPY src/ .
 EXPOSE 7000
 
 # Command to run the application
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:7000", "--workers", "3"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:7000", "--workers", "3", "--timeout", "1000"]

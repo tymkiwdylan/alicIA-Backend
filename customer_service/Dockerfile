@@ -18,4 +18,4 @@ COPY src/ .
 EXPOSE 9000
 
 # Command to run the application
-CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:9000", "--workers", "3"]
+CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:9000", "--workers", "3", "--timeout", "1000"]
