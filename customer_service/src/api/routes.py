@@ -256,29 +256,29 @@ def sms_reply():
     return str(resp), 200
 
 
-@routes.route('/message_reply', methods=['GET', 'POST'])
-def message_reply():
-    if request.method == 'GET':
-       return verify(request)
+# @routes.route('/message_reply', methods=['GET', 'POST'])
+# def message_reply():
+#     if request.method == 'GET':
+#        return verify(request)
    
-    incoming_msg, to_number, from_number = handle_whatsapp_message(request.json)
+#     incoming_msg, to_number, from_number = handle_whatsapp_message(request.json)
     
-    # Lookup the agent based on the to_number (business phone number)
-    agent = Agent.query.filter_by(business_phone_number=to_number).first()
-    if not agent:
-        logging.error("Agent not found for the given business phone number.")
-        return jsonify({"error": "Agent not found"}), 404
+#     # Lookup the agent based on the to_number (business phone number)
+#     agent = Agent.query.filter_by(business_phone_number=to_number).first()
+#     if not agent:
+#         logging.error("Agent not found for the given business phone number.")
+#         return jsonify({"error": "Agent not found"}), 404
 
-    if incoming_msg:
-        # Here, adapt get_chatgpt_response to work with WhatsApp Business API
-        answer = get_chatgpt_response(incoming_msg, from_number, to_number)
-        # Use the sendWhatsAppMessage function, ensuring to pass agent details for dynamic credential selection
-        sendWhatsAppMessage(answer, from_number, agent)
-    else:
-        sendWhatsAppMessage("Message cannot be empty!", from_number, agent)
+#     if incoming_msg:
+#         # Here, adapt get_chatgpt_response to work with WhatsApp Business API
+#         answer = get_chatgpt_response(incoming_msg, from_number, to_number)
+#         # Use the sendWhatsAppMessage function, ensuring to pass agent details for dynamic credential selection
+#         sendWhatsAppMessage(answer, from_number, agent)
+#     else:
+#         sendWhatsAppMessage("Message cannot be empty!", from_number, agent)
 
-    # WhatsApp Business API does not require a response body for webhook events
-    return jsonify(success=True), 200
+#     # WhatsApp Business API does not require a response body for webhook events
+#     return jsonify(success=True), 200
 
 # @routes.route('/numbers', methods=['GET'])
 # def available_numbers():

@@ -11,10 +11,6 @@ class Search():
                         "type": "string",
                         "description": "The query that is used to search for an item"
                     },
-                    "company_name": {
-                        "type": "string",
-                        "description": "name of the company the assistant works for"
-                    }
                     },
                     "required": [
                     "query"
@@ -22,14 +18,14 @@ class Search():
                 }
             }
     @staticmethod
-    def execute(**kwargs):
+    def execute(company_name, **kwargs):
         # The URL for the API endpoint (you will replace this with the actual URL)
         url = "http://chain-layer:7000/search"
         query = kwargs.get('query')
 
         try:
             # Making a GET request to the API
-            response = requests.get(url, params={'query': query})
+            response = requests.get(url, params={'query': query, 'company_name': company_name})
 
             # Check if the response is successful
             if response.status_code == 200:
