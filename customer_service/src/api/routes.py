@@ -7,6 +7,7 @@ from . import db
 from .models import Agent, Conversation, Message
 from requests import Session
 import sqlalchemy.exc
+import requests
 from .waba_client import get_facebook_access_token, get_waba_details, handle_whatsapp_message, register_waba, verify, add_system_user
 
 
