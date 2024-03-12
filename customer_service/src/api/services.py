@@ -124,6 +124,8 @@ def get_chatgpt_response(prompt, phone_number, business_number):
     
     # Get conversation
     
+    company_name = Agent.query.get(agent.id).company_name
+    
     conversation = Conversation.query.filter_by(phone_number=phone_number).first()
     
     if conversation is None:
@@ -182,7 +184,7 @@ def get_chatgpt_response(prompt, phone_number, business_number):
             
             logging.debug(f'Functions to Call {run.required_action.submit_tool_outputs.tool_calls}')
             
-            tool_outputs = call_functions(run.required_action.submit_tool_outputs.tool_calls)
+            tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
             
             run = openai_client.beta.threads.runs.submit_tool_outputs(
             thread_id=conversation.thread_id,
