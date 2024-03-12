@@ -23,7 +23,7 @@ def register_functions():
     
     return function_settings
 
-def call_functions(required_functions):
+def call_functions(company_name, required_functions):
     
     tool_outputs = []
     
@@ -38,7 +38,7 @@ def call_functions(required_functions):
         if function is None:
             return {'Error': "Function does not exist"}
         
-        result = function.execute(**args)
+        result = function.execute(company_name, **args)
         logging.debug(f'This is the actual response: {result}')
         
         output['output'] = json.dumps(result)
