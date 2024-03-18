@@ -75,7 +75,7 @@ def login():
     # Generate token
     token = generate_token(user.id)
 
-    return jsonify({'token': token, 'active': user.active}), 200
+    return jsonify({'token': token}), 200
 
 @auth.route('/validate', methods=['POST'])
 def validate():
@@ -118,8 +118,8 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='http://localhost:5173/',  # Adjust as needed
-            cancel_url='http://localhost:5173/cancel',  # Adjust as needed
+            success_url='https:alicia.nortedev.net/',  # Adjust as needed
+            cancel_url='https://alicia.nortedev.net/cancel',  # Adjust as needed
             metadata={'user_id': user_id}  # Add user ID to the metadata
         )
         return jsonify({'url': checkout_session.url})
@@ -168,7 +168,6 @@ def stripe_webhook():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-
 @auth.route('/cancel-subscription', methods=['POST'])
 def cancel_subscription():
     # Authenticate the user (this is pseudo-code, adapt based on your auth system)
@@ -199,3 +198,75 @@ def cancel_subscription():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@auth.route('/change-password', methods=['POST'])
+def change_password():
+    # Authenticate the user (this is pseudo-code, adapt based on your auth system)
+    token = request.headers.get('Authorization')
+    if token.startswith('Bearer '):
+        token = token[7:]
+    
+    payload = verify_token(token)
+    
+    if not payload:
+        return jsonify({'message': 'Unauthorized'}), 401
+
+    user = User.query.get(payload['user_id'])
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    # Get data from request
+    data = request.get_json()
+
+    # Validate data
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({'message': 'Old and new password are required'}), 400
+
+    if not check_password_hash(user.password_hash, old_password):
+        return jsonify({'message': 'Invalid old password'}), 400
+
+    # Update user's password
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+
+    return jsonify({'message': 'Password updated successfully'}), 200
+
+@auth.route('/change-email', methods=['POST'])
+def change_email():
+    # Authenticate the user (this is pseudo-code, adapt based on your auth system)
+    token = request.headers.get('Authorization')
+    if token.startswith('Bearer '):
+        token = token[7:]
+    
+    payload = verify_token(token)
+    
+    if not payload:
+        return jsonify({'message': 'Unauthorized'}), 401
+
+    user = User.query.get(payload['user_id'])
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    # Get data from request
+    data = request.get_json()
+
+    # Validate data
+    new_email = data.get('new_email')
+
+    if not new_email:
+        return jsonify({'message': 'New email is required'}), 400
+
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=new_email).first()
+    if existing_user:
+        return jsonify({'message': 'User already exists with the new email'}), 409
+
+    # Update user's email
+    user.email = new_email
+    db.session.commit()
+
+    return jsonify({'message': 'Email updated successfully'}), 200
