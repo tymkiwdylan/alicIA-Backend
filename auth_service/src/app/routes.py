@@ -118,7 +118,7 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https:alicia.nortedev.net/',  # Adjust as needed
+            success_url='https://alicia.nortedev.net/',  # Adjust as needed
             cancel_url='https://alicia.nortedev.net/cancel',  # Adjust as needed
             metadata={'user_id': user_id}  # Add user ID to the metadata
         )
