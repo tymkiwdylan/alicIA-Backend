@@ -154,6 +154,7 @@ def stripe_webhook():
                     if user:
                         # Activate the user
                         user.active = True
+                        user.stripe_subscription_id = subscription_id
                         db.session.commit()
                         return jsonify({'status': 'success'}), 200
                     else:
