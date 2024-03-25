@@ -7,7 +7,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256))
     company_name = db.Column(db.String(256))
     stripe_customer_id = db.Column(db.String(256))
-    stripe_customer_id = db.Column(db.String(256))
+    stripe_subscription_id = db.Column(db.String(256))
     active = db.Column(db.Boolean, default=False)
     
     def jsonify(self):
