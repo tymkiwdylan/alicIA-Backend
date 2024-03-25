@@ -17,5 +17,5 @@ COPY src/ .
 # Specify the port the app runs on
 EXPOSE 5000
 
-# Command to run the application
-CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "1000"]
+# Command to run the application with logging to stdout
+CMD ["gunicorn", "app:create_app()", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "1000", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-"]
