@@ -118,8 +118,8 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https://alicia.nortedev.net/',  # Adjust as needed
-            cancel_url='https://alicia.nortedev.net/cancel',  # Adjust as needed
+            success_url='https://alicia.nortedev.net/chatbot',  # Adjust as needed
+            cancel_url=f'https://alicia.nortedev.net/pricing?userId={user_id}',  # Adjust as needed
             metadata={'user_id': user_id}  # Add user ID to the metadata
         )
         return jsonify({'url': checkout_session.url})
@@ -142,7 +142,7 @@ def stripe_webhook():
 
             # Extract user_id from session metadata
             user_id = session.get('metadata', {}).get('user_id')
-
+            print("USER ID:" + user_id)
             # Retrieve the subscription ID from the session (if needed) and verify its status
             # This step assumes you want to further verify the subscription status
             subscription_id = session.get('subscription')
