@@ -8,12 +8,10 @@ def generate_token(user_id):
     
     user = User.query.filter_by(id=user_id).first()
     company_name = user.company_name
-    active = user.active
     
     payload = {
         'user_id': user_id,
         'company_name': company_name,
-        'active': active,
     }
     
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')

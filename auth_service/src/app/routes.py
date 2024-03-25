@@ -91,6 +91,7 @@ def validate():
     # Verify the token
     payload = verify_token(token)
     if payload != False:
+        payload['active'] = User.query.get(payload['user_id']).active
         return jsonify({'message': 'Token is valid', 'data': payload }), 200
     else:
         return jsonify({'message': 'Token is invalid or expired'}), 401
