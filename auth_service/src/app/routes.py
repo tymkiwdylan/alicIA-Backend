@@ -172,15 +172,15 @@ def stripe_webhook():
 @auth.route('/cancel-subscription', methods=['POST'])
 def cancel_subscription():
     # Authenticate the user (this is pseudo-code, adapt based on your auth system)
-    user_id = request.get_json().get('user_id')
     token = request.headers.get('Authorization')
     if token.startswith('Bearer '):
         token = token[7:]
         
-    if not verify_token(token):
+    payload = verify_token(token)
+    if not payload:
         return jsonify({'message': 'Unauthorized'}), 401
 
-    user = User.query.get(user_id)
+    user = User.query.get(payload['user_id'])
     if not user:
         return jsonify({'message': 'User not found'}), 404
 
