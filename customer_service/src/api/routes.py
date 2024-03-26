@@ -326,7 +326,7 @@ def twilio_signup():
     
     agent.waba_id = waba_id
     agent.number_id = phone_number_id
-    agent.business_phone_number = '+'+ country_code + phone_number
+    agent.business_phone_number = '+' + str(country_code) + phone_number
     
     db.session.commit()
     
