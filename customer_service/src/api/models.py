@@ -29,8 +29,6 @@ class Agent(db.Model):
             'tone': self.tone,
             'company_name': self.company_name,
             'waba_id': self.waba_id,
-            'facebook_page_id': self.facebook_page_id,
-            'access_token': self.access_token,
             'token_expiry': self.token_expiry.isoformat() if self.token_expiry else None,
             'conversations': conversations
         }
