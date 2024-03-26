@@ -11,8 +11,8 @@ class Agent(db.Model):
     custom_instructions = db.Column(db.Text)
     company_name = db.Column(db.String(128))
     waba_id = db.Column(db.String(256), unique=True)  # WhatsApp Business Account ID
-    facebook_page_id = db.Column(db.String(256), unique=True)  # Facebook Page ID linked to WABA
-    access_token = db.Column(db.String(512))  # Access token for API calls
+    twilio_sid = db.Column(db.String(256), unique=True)  # Facebook Page ID linked to WABA
+    twilio_auth_token = db.Column(db.String(512))  # Access token for API calls
     token_expiry = db.Column(db.DateTime)  # Expiry date/time of the access token
     conversations = db.relationship('Conversation')
 
@@ -68,3 +68,5 @@ class Message(db.Model):
             'conversation_id': self.conversation_id,
             'content' : self.content
         }
+        
+        

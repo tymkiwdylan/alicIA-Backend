@@ -8,7 +8,7 @@ from .models import Agent, Conversation, Message
 from requests import Session
 import sqlalchemy.exc
 import requests
-from .waba_client import get_facebook_access_token, get_waba_details, handle_whatsapp_message, register_waba, verify, add_system_user
+from .twilio_client import create_subaccount, create_waba_sender
 
 
 
@@ -305,74 +305,49 @@ def sms_reply():
 #     except Exception as e:
 #         return jsonify(message = 'Oops something went wrong', error = str(e)), 500
 
-
-@routes.route('/waba-signup', methods=['POST'])
-def waba_signup():
-    data = request.get_json()
-    code = data.get('code')
-    
-    validation = requests.post('http://auth:5000/validate', headers={'Authorization': request.headers.get('Authorization')})
-
-    if validation.status_code != 200:
-        return 'Invalid Token', 401
-    
-    user_id = validation.json()['data']['user_id']
-    
-    if not user_id or not code:
-        return jsonify(message='Missing user_id or code'), 400
-
-    agent = Agent.query.filter_by(user_id=user_id).first()
-    if agent is None:
-        return jsonify(message='Agent not set up'), 400
-
-    try:
-        with Session() as session:
-            access_token = get_facebook_access_token(session)
-            user_access_token = get_facebook_access_token(session, code)
-            phone_number, number_id, waba_id = get_waba_details(session, access_token, user_access_token)
-            if not add_system_user(session, waba_id):
-                return jsonify(message='Failed to add system user to WABA'), 500
-            if not register_waba(session, user_access_token, waba_id, code):
-                return jsonify(message='Failed to register Number'), 500
-
-            agent.access_token = user_access_token
-            agent.waba_id = waba_id
-            agent.number_id = number_id
-            agent.business_phone_number = phone_number
-
-            db.session.commit()
-            return jsonify(message='WABA setup successful', data={'phone_number': phone_number}), 200
-    except (sqlalchemy.exc.SQLAlchemyError, requests.exceptions.RequestException) as e:
-        db.session.rollback()
-        return jsonify(message='Oops something went wrong', error=str(e)), 500
-
-        
         
 
 @routes.route('/twilio-signup', methods=['POST'])
 def twilio_signup():
-    data = request.get_json()
-    token = request.headers.get('Authorization')
-    business_number = data.get('business_number')
-    
-    validation = requests.post('http://auth:5000/validate', headers={'Authorization': token})
+    validation = requests.post('http://auth:5000/validate', headers={'Authorization': request.headers.get('Authorization')})
     
     if validation.status_code != 200:
         return 'Invalid Token', 401
     
-    user_id = validation.json()['data']['user_id']
+    data = request.get_json()
     
-    if not user_id:
-        return jsonify(message='Missing user_id'), 400
+    user_id = validation.json()['data']['user_id']
+    phone_number = data.get('phone_number')
+    phone_number_id = data.get('phone_number_id')
+    country_code = data.get('country_code')
+    waba_id = data.get('waba_id')
     
     agent = Agent.query.filter_by(user_id=user_id).first()
     
-    if agent is None:
-        return jsonify(message='Agent not set up'), 400
-    
-    agent.business_phone_number = 'whatsapp:' + business_number
+    agent.waba_id = waba_id
+    agent.number_id = phone_number_id
+    agent.business_phone_number = '+'+ country_code + phone_number
     
     db.session.commit()
     
-    return jsonify(message='Twilio setup successful', data={'business_number': business_number}), 200
+    subaccount = create_subaccount(agent.company_name, user_id)
+    
+    if subaccount == None:
+        return 'Failed to create subaccount', 400
+    
+    waba = create_waba_sender(waba_id)
+    
+    if waba == None:
+        return 'Failed to create waba sender', 400
+    
+    return 'success', 201
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
