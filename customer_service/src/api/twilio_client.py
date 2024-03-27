@@ -103,7 +103,7 @@ def create_waba_sender(waba_id):
     
     print("TWILIO RESPONSE:", response.text)
     
-    if response.status_code != 200:
+    if not response.ok:
         return False
     
     return True
