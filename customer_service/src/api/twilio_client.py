@@ -97,6 +97,8 @@ def create_waba_sender(waba_id):
     
     response = requests.post(url, auth=auth, data=payload, headers=headers)
     
+    print("TWILIO RESPONSE:", response)
+    
     if response.status_code != 200:
         return False
     
