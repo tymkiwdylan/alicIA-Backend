@@ -83,7 +83,7 @@ def sendMessage(body_mess, phone_number, business_number):
             final_chunk = f"{chunk} {part_number}"
             
             logging.debug(f"Sending message chunk: {final_chunk} to {phone_number}")
-            
+            print(f"Sending message chunk: {final_chunk} from {business_number}")
             message = client.messages.create(
                 from_='whatsapp:' + business_number,
                 body=final_chunk,
