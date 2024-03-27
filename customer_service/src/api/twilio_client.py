@@ -61,7 +61,7 @@ def create_subaccount(friendly_name, user_id):
     try:
         account = client.api.v2010.accounts.create(friendly_name=friendly_name)
         
-        print("ACCOUNT SID", account.sid)
+        print("ACCOUNT SID", account)
         
         agent = Agent.query.filter_by(user_id=user_id).first()
         
