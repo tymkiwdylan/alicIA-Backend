@@ -332,12 +332,12 @@ def twilio_signup():
     
     subaccount = create_subaccount(agent.company_name, user_id)
     
-    if subaccount == None:
+    if subaccount == False:
         return 'Failed to create subaccount', 400
     
     waba = create_waba_sender(waba_id)
     
-    if waba == None:
+    if waba == False:
         return 'Failed to create waba sender', 400
     
     return 'success', 201

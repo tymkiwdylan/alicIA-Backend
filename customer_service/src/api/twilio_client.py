@@ -99,7 +99,7 @@ def create_waba_sender(waba_id):
     
     auth = HTTPBasicAuth(agent.twilio_sid, agent.twilio_auth_token)
     
-    response = requests.post(url, auth=auth, data=payload, headers=headers)
+    response = requests.post(url, auth=auth, json=payload, headers=headers)
     
     print("TWILIO RESPONSE:", response.text)
     
