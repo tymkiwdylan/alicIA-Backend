@@ -61,6 +61,8 @@ def create_subaccount(friendly_name, user_id):
     try:
         account = client.api.v2010.accounts.create(friendly_name=friendly_name)
         
+        print("ACCOUNT SID", account.sid)
+        
         agent = Agent.query.filter_by(user_id=user_id).first()
         
         agent.twilio_sid = account.sid['sid']
@@ -92,6 +94,8 @@ def create_waba_sender(waba_id):
         "callback_method": "POST",
         }
     }
+    
+    print(agent.twilio_sid, agent.twilio_auth_token)
     
     auth = HTTPBasicAuth(agent.twilio_sid, agent.twilio_auth_token)
     
