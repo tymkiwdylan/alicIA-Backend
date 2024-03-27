@@ -65,8 +65,8 @@ def create_subaccount(friendly_name, user_id):
         
         agent = Agent.query.filter_by(user_id=user_id).first()
         
-        agent.twilio_sid = account.sid['sid']
-        agent.twilio_auth_token = account.sid['auth_token']
+        agent.twilio_sid = account.sid
+        agent.twilio_auth_token = account.auth_token
         
         db.session.commit()
         return True
