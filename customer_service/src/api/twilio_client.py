@@ -67,10 +67,10 @@ def create_subaccount(friendly_name, user_id):
         agent.twilio_auth_token = account.sid['auth_token']
         
         db.session.commit()
-        return account.sid
+        return True
     except Exception as e:
         db.session.rollback()
-        return None
+        return False
     
 
 def create_waba_sender(waba_id):
@@ -98,8 +98,8 @@ def create_waba_sender(waba_id):
     response = requests.post(url, auth=auth, data=payload, headers=headers)
     
     if response.status_code != 200:
-        return None
+        return False
     
-    return response.json()
+    return True
     
     
