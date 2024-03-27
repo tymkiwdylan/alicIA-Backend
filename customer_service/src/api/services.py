@@ -7,6 +7,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from tinydb import TinyDB
 from tinydb import Query
 from .models import Agent, Conversation, Message
+from twilio.rest import Client
 from . import client, openai_client, functions, db
 
 
@@ -52,7 +53,9 @@ def call_functions(company_name, required_functions):
 
 def sendMessage(body_mess, phone_number, business_number):
     try:
-        MAX_MESSAGE_LENGTH = 550 
+        MAX_MESSAGE_LENGTH = 550
+        agent = Agent.query.filter_by(business_phone_number=business_number).first()
+        message_client =  Client(agent.twilio_sid, agent.twilio_auth_token)
 
         # Split the message into lines and words
         lines = body_mess.split('\n')
@@ -84,7 +87,7 @@ def sendMessage(body_mess, phone_number, business_number):
             
             logging.debug(f"Sending message chunk: {final_chunk} to {phone_number}")
             print(f"Sending message chunk: {final_chunk} from {business_number}")
-            message = client.messages.create(
+            message = message_client.messages.create(
                 from_='whatsapp:' + business_number,
                 body=final_chunk,
                 to='whatsapp:' + phone_number

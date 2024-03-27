@@ -247,10 +247,10 @@ def sms_reply():
     logging.debug(f"Incoming message from {phone_number}: {incoming_msg}")
     print('FROM NUMBER:', business_number)
     if incoming_msg:
-        answer = get_chatgpt_response(incoming_msg, phone_number, business_number)
+        answer = get_chatgpt_response(incoming_msg, phone_number, business_number[9:])
         sendMessage(answer, phone_number[9:], business_number[9:])
     else:
-        sendMessage("Message cannot be empty!", phone_number[9:], business_number)
+        sendMessage("Message cannot be empty!", phone_number[9:], business_number[9:])
 
     resp = MessagingResponse()
     resp.message("")
