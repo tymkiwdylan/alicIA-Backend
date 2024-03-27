@@ -83,7 +83,7 @@ def create_waba_sender(waba_id):
     headers = {
     "Content-Type": "application/json",
     }
-    
+    print(agent.business_phone_number)
     payload = {
     "sender_id": "whatsapp:"+agent.business_phone_number,
     "configuration": {
