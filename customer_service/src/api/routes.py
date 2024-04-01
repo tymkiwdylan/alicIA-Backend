@@ -245,7 +245,9 @@ def sms_reply():
         session['session_id'] = session_id
 
     logging.debug(f"Incoming message from {phone_number}: {incoming_msg}")
-    print('FROM NUMBER:', business_number)
+    
+    
+    
     if incoming_msg:
         answer = get_chatgpt_response(incoming_msg, phone_number, business_number[9:])
         sendMessage(answer, phone_number[9:], business_number[9:])

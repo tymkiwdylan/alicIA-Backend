@@ -122,8 +122,14 @@ def get_chatgpt_response(prompt, phone_number, business_number):
     # Fetch the thread_id for this number
     agent = Agent.query.filter_by(business_phone_number=business_number).first()
     
-    if agent is None:
-        return 'This agent has not being set up yet'
+    try: 
+        response = requests.get(f'http://auth:5000/is-active', params={'user_id': agent.user_id})
+    except Exception as e:
+        return "Agente inactivo"
+        
+    if not response.ok:
+        return "Agente inactivo"
+
     
     # Get conversation
     
@@ -156,7 +162,7 @@ def get_chatgpt_response(prompt, phone_number, business_number):
     
     db.session.add(new_message)
     db.session.commit()
-    
+        
     run = openai_client.beta.threads.runs.create(
     thread_id=conversation.thread_id,
     assistant_id=agent.id,

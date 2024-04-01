@@ -95,6 +95,20 @@ def validate():
         return jsonify({'message': 'Token is valid', 'data': payload }), 200
     else:
         return jsonify({'message': 'Token is invalid or expired'}), 401
+    
+@auth.route('/is-active', methods=['GET'])
+def is_active():
+    # Get the user_id from the query string and then fetch the user and return their active status
+    user_id = request.args.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    if not user.active:
+        return jsonify({'message': 'User is not active'}), 400
+    
+    return jsonify({'message': 'User is active'}), 200
 
 
 @auth.route('/create-checkout-session', methods=['POST'])
