@@ -2,9 +2,14 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from sendgrid import SendGridAPIClient
+from dotenv import load_dotenv
 from flask_migrate import Migrate  # Import Flask-Migrate
 
+load_dotenv()
+
 db = SQLAlchemy()
+sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
 
 def create_app():
     app = Flask(__name__)
