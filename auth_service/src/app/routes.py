@@ -342,7 +342,6 @@ def reset_password():
         
         user.password_hash = generate_password_hash(new_password)
         user.reset_token = None
-        
         db.session.commit()
         
         return jsonify({'message': 'Password reset successfully'}), 200

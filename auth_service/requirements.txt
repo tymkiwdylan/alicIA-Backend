@@ -8,6 +8,5 @@ stripe
 gunicorn
 psycopg2-binary
 sendgrid
-dotenv
 datetime
 
