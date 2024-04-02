@@ -482,13 +482,21 @@ def process_prompt():
         
         if run.status == "requires_action":
             
-            tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
-        
-            run = openai_client.beta.threads.runs.submit_tool_outputs(
-            thread_id=thread_id,
-            run_id=run.id,
-            tool_outputs= tool_outputs,
-            )
+            try:
+            
+                tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
+            
+                run = openai_client.beta.threads.runs.submit_tool_outputs(
+                thread_id=thread_id,
+                run_id=run.id,
+                tool_outputs= tool_outputs,
+                )
+            
+            except:
+                run = openai_client.beta.threads.runs.cancel(
+                    thread_id=thread_id,
+                    run_id=run.id
+                )
             
         if run.status == "expired":
             return "Timeout Error", 204

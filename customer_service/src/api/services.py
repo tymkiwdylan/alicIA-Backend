@@ -193,13 +193,23 @@ def get_chatgpt_response(prompt, phone_number, business_number):
             
             logging.debug(f'Functions to Call {run.required_action.submit_tool_outputs.tool_calls}')
             
-            tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
+            try:
             
-            run = openai_client.beta.threads.runs.submit_tool_outputs(
-            thread_id=conversation.thread_id,
-            run_id=run.id,
-            tool_outputs= tool_outputs,
-            )
+                tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
+                
+                run = openai_client.beta.threads.runs.submit_tool_outputs(
+                thread_id=conversation.thread_id,
+                run_id=run.id,
+                tool_outputs= tool_outputs,
+                )
+                
+            except:
+                
+                run = openai_client.beta.threads.runs.cancel(
+                thread_id=conversation.thread_id,
+                run_id=run.id
+                )
+            
         if run.status == "expired":
             return "Timeout Error"
         if run.status == "cancelled":
