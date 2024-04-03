@@ -134,6 +134,7 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
+            allow_promotion_codes=True,
             success_url='https://alicia.nortedev.net/chatbot',  # Adjust as needed
             cancel_url=f'https://alicia.nortedev.net/pricing?userId={user_id}',  # Adjust as needed
             metadata={'user_id': user_id}  # Add user ID to the metadata
