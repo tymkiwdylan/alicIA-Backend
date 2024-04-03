@@ -7,8 +7,8 @@ import jwt
 import stripe
 from .services import generate_token, verify_token, send_email
 
-stripe.api_key = 'sk_test_51OgSZeJE3OWBK5PLZwoD7jlqkpSoXCCTbvNOvg46yuAGZsNaILYJH3nVdiBmLfgTyiOKgBTwuWjxMqzo3pNG2cgl007sJ606Kk'
-stripe_webhook_secret = 'whsec_c8j5oidCZphehXd2CoF2X42luPUlxyEz'
+stripe.api_key = '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'
+stripe_webhook_secret = 'whsec_Q7CMLhNjqCHwYdZfa15fxOGl4bqkyk6D'
 
 auth = Blueprint('auth', __name__)
 
