@@ -130,7 +130,7 @@ def create_checkout_session():
             customer=user.stripe_customer_id,  # Use the stored Stripe Customer ID
             payment_method_types=['card'],
             line_items=[{
-                'price': 'price_1OglpXJE3OWBK5PLSbdAxeGy', # Use the recurring price ID from Stripe
+                'price': 'price_1P1RkNJE3OWBK5PLm0whlfRY', # Use the recurring price ID from Stripe
                 'quantity': 1,
             }],
             mode='subscription',
