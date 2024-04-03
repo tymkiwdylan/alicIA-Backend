@@ -7,3 +7,6 @@ flask_cors==3.0.10
 stripe
 gunicorn
 psycopg2-binary
+sendgrid
+datetime
+

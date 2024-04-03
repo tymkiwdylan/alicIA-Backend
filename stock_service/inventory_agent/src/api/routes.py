@@ -402,11 +402,6 @@ def upload_files(files):
 
 @routes.route('/prompt', methods = ['POST'])
 def process_prompt():
-    # create new message
-    # create run
-    # Loop until run is not in_progess or qeued
-    # Branch to function if neccessary
-    # return response
     
     prompt = request.form.get('prompt')
     thread_id = request.form.get('thread_id')
@@ -416,7 +411,31 @@ def process_prompt():
     conversation = Conversation.query.get(thread_id)
     agent_id = conversation.agent_id
     
-    company_name = Agent.query.get(agent_id).company_name
+    agent = Agent.query.get(agent_id)
+    company_name = agent.company_name
+    user_id = agent.user_id
+    
+    try:
+        response = requests.get('http://auth:5000/is-active', params={'user_id': user_id})
+    except Exception as e:
+        new_message = Message(conversation_id=conversation.id,
+                          role = 'assistant',
+                          content = 'Asistente inactivo')
+    
+        db.session.add(new_message)
+        db.session.commit()
+        
+        return jsonify(data = new_message.jsonify()), 201
+
+    if not response.ok:
+        new_message = Message(conversation_id=conversation.id,
+                          role = 'assistant',
+                          content = 'Asistente inactivo')
+    
+        db.session.add(new_message)
+        db.session.commit()
+        
+        return jsonify(data = new_message.jsonify()), 201
     
     message = openai_client.beta.threads.messages.create(
         thread_id=thread_id,
@@ -463,20 +482,27 @@ def process_prompt():
         
         if run.status == "requires_action":
             
-            tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
-        
-            run = openai_client.beta.threads.runs.submit_tool_outputs(
-            thread_id=thread_id,
-            run_id=run.id,
-            tool_outputs= tool_outputs,
-            )
+            try:
+            
+                tool_outputs = call_functions(company_name, run.required_action.submit_tool_outputs.tool_calls)
+            
+                run = openai_client.beta.threads.runs.submit_tool_outputs(
+                thread_id=thread_id,
+                run_id=run.id,
+                tool_outputs= tool_outputs,
+                )
+            
+            except:
+                run = openai_client.beta.threads.runs.cancel(
+                    thread_id=thread_id,
+                    run_id=run.id
+                )
             
         if run.status == "expired":
             return "Timeout Error", 204
         if run.status == "cancelled":
             return "Request cancelled", 204
         if run.status == "failed":
-            print(run)
             return "Request Failed to Complete", 204
         
 def process_completion(response):

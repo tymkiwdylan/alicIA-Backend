@@ -1,10 +1,11 @@
-from flask import Blueprint, request, jsonify
+import datetime
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import check_password_hash, generate_password_hash
-from . import db
+from . import db, sg
 from .models import User
 import jwt
 import stripe
-from .services import generate_token, verify_token
+from .services import generate_token, verify_token, send_email
 
 stripe.api_key = 'sk_test_51OgSZeJE3OWBK5PLZwoD7jlqkpSoXCCTbvNOvg46yuAGZsNaILYJH3nVdiBmLfgTyiOKgBTwuWjxMqzo3pNG2cgl007sJ606Kk'
 stripe_webhook_secret = 'whsec_c8j5oidCZphehXd2CoF2X42luPUlxyEz'
@@ -95,6 +96,20 @@ def validate():
         return jsonify({'message': 'Token is valid', 'data': payload }), 200
     else:
         return jsonify({'message': 'Token is invalid or expired'}), 401
+    
+@auth.route('/is-active', methods=['GET'])
+def is_active():
+    # Get the user_id from the query string and then fetch the user and return their active status
+    user_id = request.args.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    if not user.active:
+        return jsonify({'message': 'User is not active'}), 400
+    
+    return jsonify({'message': 'User is active'}), 200
 
 
 @auth.route('/create-checkout-session', methods=['POST'])
@@ -272,3 +287,65 @@ def change_email():
     db.session.commit()
 
     return jsonify({'message': 'Email updated successfully'}), 200
+
+@auth.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'message': 'Email is required'}), 400
+    
+    user  = User.query.filter_by(email=email).first()
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    
+    reset_token = jwt.encode({'email': email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)},
+                             current_app.config['SECRET_KEY'], algorithm='HS256')
+    
+    user.reset_token = reset_token
+    
+    db.session.commit()
+    
+    reset_url = f"https://alicia.nortedev.net/reset-password?token={reset_token}"
+    
+    msg = f"Click acá para restablecer tu contraseña: {reset_url}"
+    
+    subject = "Restablecer contraseña: alcIA"
+
+    response = send_email(subject, msg, email)
+    
+    if response:
+        return jsonify({'message': 'Email sent successfully'}), 200
+    
+    return jsonify({'message': 'Email could not be sent'}), 500
+
+
+@auth.route('/reset-password', methods= ['POST'])
+def reset_password():
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('new_password')
+    
+    if not token or not new_password:
+        return jsonify({'message': 'Token and new password are required'}), 400
+    
+    try:
+        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        email = payload.get('email')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+        
+        user.password_hash = generate_password_hash(new_password)
+        user.reset_token = None
+        db.session.commit()
+        
+        return jsonify({'message': 'Password reset successfully'}), 200
+    
+    except:
+        return jsonify({'message': 'Token invalida o expirada'}), 400
+    

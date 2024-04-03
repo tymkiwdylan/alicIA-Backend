@@ -9,6 +9,7 @@ class User(db.Model):
     stripe_customer_id = db.Column(db.String(256))
     stripe_subscription_id = db.Column(db.String(256))
     active = db.Column(db.Boolean, default=False)
+    reset_token = db.Column(db.String(256))
     
     def jsonify(self):
         return {

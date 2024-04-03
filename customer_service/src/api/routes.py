@@ -245,12 +245,14 @@ def sms_reply():
         session['session_id'] = session_id
 
     logging.debug(f"Incoming message from {phone_number}: {incoming_msg}")
-
+    
+    
+    
     if incoming_msg:
-        answer = get_chatgpt_response(incoming_msg, phone_number, business_number)
+        answer = get_chatgpt_response(incoming_msg, phone_number, business_number[9:])
         sendMessage(answer, phone_number[9:], business_number[9:])
     else:
-        sendMessage("Message cannot be empty!", phone_number[9:], business_number)
+        sendMessage("Message cannot be empty!", phone_number[9:], business_number[9:])
 
     resp = MessagingResponse()
     resp.message("")
@@ -326,18 +328,18 @@ def twilio_signup():
     
     agent.waba_id = waba_id
     agent.number_id = phone_number_id
-    agent.business_phone_number = '+'+ country_code + phone_number
+    agent.business_phone_number = '+' + str(country_code) + phone_number
     
     db.session.commit()
     
     subaccount = create_subaccount(agent.company_name, user_id)
     
-    if subaccount == None:
+    if subaccount == False:
         return 'Failed to create subaccount', 400
     
     waba = create_waba_sender(waba_id)
     
-    if waba == None:
+    if waba == False:
         return 'Failed to create waba sender', 400
     
     return 'success', 201

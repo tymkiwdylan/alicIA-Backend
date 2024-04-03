@@ -2,9 +2,11 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from sendgrid import SendGridAPIClient
 from flask_migrate import Migrate  # Import Flask-Migrate
 
 db = SQLAlchemy()
+sg = SendGridAPIClient('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')
 
 def create_app():
     app = Flask(__name__)

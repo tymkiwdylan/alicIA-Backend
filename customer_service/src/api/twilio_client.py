@@ -61,16 +61,18 @@ def create_subaccount(friendly_name, user_id):
     try:
         account = client.api.v2010.accounts.create(friendly_name=friendly_name)
         
+        print("ACCOUNT SID", account)
+        
         agent = Agent.query.filter_by(user_id=user_id).first()
         
-        agent.twilio_sid = account.sid['sid']
-        agent.twilio_auth_token = account.sid['auth_token']
+        agent.twilio_sid = account.sid
+        agent.twilio_auth_token = account.auth_token
         
         db.session.commit()
-        return account.sid
+        return True
     except Exception as e:
         db.session.rollback()
-        return None
+        return False
     
 
 def create_waba_sender(waba_id):
@@ -81,7 +83,7 @@ def create_waba_sender(waba_id):
     headers = {
     "Content-Type": "application/json",
     }
-    
+    print(agent.business_phone_number)
     payload = {
     "sender_id": "whatsapp:"+agent.business_phone_number,
     "configuration": {
@@ -93,13 +95,17 @@ def create_waba_sender(waba_id):
         }
     }
     
+    print(agent.twilio_sid, agent.twilio_auth_token)
+    
     auth = HTTPBasicAuth(agent.twilio_sid, agent.twilio_auth_token)
     
-    response = requests.post(url, auth=auth, data=payload, headers=headers)
+    response = requests.post(url, auth=auth, json=payload, headers=headers)
     
-    if response.status_code != 200:
-        return None
+    print("TWILIO RESPONSE:", response.text)
     
-    return response.json()
+    if not response.ok:
+        return False
+    
+    return True
     
     
